@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: ai-resume-builder-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: deepseek/deepseek-chat-v3-0324:free
+      - key: OPENROUTER_MODEL_FALLBACKS
+        value: "meta-llama/llama-3.3-70b-instruct:free,google/gemini-2.0-flash-lite-preview-02-05:free"
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false

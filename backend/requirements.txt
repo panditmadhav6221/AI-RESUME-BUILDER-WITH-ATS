@@ -1,0 +1,31 @@
+# Web framework
+fastapi==0.138.0
+uvicorn[standard]==0.49.0
+python-multipart==0.0.32
+
+# Database (Supabase PostgreSQL via SQLAlchemy async; SQLite fallback for local dev/tests)
+sqlalchemy==2.0.51
+asyncpg==0.31.0
+aiosqlite==0.22.1
+
+# Auth / config (optional supabase-py for future Supabase Auth integration)
+python-dotenv==1.0.1
+supabase==2.20.1
+
+# AI
+openai==1.99.0
+httpx==0.28.1
+
+# Parsing / export
+pdfplumber==0.11.10
+python-docx==1.2.0
+jinja2==3.1.6
+# WeasyPrint produces ATS-clean PDFs from the HTML template. The Docker image
+# installs the required Pango/Cairo/fonts (see Dockerfile) - no browser needed.
+weasyprint==69.0
+
+# Patterns / validation
+pydantic==2.13.4
+
+# Dev / test
+pytest==8.4.2

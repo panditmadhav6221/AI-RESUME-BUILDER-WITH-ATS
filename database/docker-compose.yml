@@ -1,0 +1,46 @@
+# Local PostgreSQL, the same engine Supabase runs in production.
+# Provides a drop-in development stand-in for Supabase: point the backend at the
+# same DATABASE_URL format used by Supabase (postgresql+asyncpg://...).
+#
+#   docker compose up -d
+#
+# PostgreSQL -> localhost:5432 (resume_builder / postgres / postgres)
+# pgAdmin UI  -> http://localhost:8081  (login: admin@resume-builder.local / admin)
+#
+# For production, use a hosted Supabase Postgres instead (no Docker needed) -
+# see README.md in this folder.
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: resume-builder-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: resume_builder
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d resume_builder"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: resume-builder-pgadmin
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@resume-builder.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pg_data:

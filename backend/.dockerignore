@@ -1,0 +1,8 @@
+# Local secrets and dev-only files must never reach the image layers.
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.db
+tests/
+.venv/
