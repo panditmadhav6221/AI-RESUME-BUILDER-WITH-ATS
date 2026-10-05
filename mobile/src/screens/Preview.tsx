@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
 
 import { atsApi, resumesApi } from "../api";
 import { AtsGauge, Button, Card, Chip, ErrorBanner, Loading, SectionHeading } from "../components";
+import { showDialog } from "../dialog";
 import { useNav } from "../navigation";
 import { exportPdfAndShare } from "../pdf";
 import { estimatePages, resumeToPlainText } from "../resumeText";
@@ -77,7 +77,7 @@ export function PreviewScreen({ resumeId, title, data, unsaved }: PreviewProps) 
     });
 
   const saveTailored = () =>
-    Alert.alert("Save as new resume", "Save this variant to your dashboard?", [
+    showDialog("Save as new resume", "Save this variant to your dashboard?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Save",

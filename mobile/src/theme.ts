@@ -64,29 +64,8 @@ export const fontSize = {
   xxl: 28,
 };
 
-export const shadows = {
-  sm: {
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  md: {
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  lg: {
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-};
+// Platform-specific: native keeps the legacy shadow* props, web uses boxShadow.
+export { shadows } from "./shadows";
 
 export const font = {
   regular: "System",

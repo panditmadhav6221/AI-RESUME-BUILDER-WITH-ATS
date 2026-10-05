@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 
+import { readRoute, subscribeToRoute, writeRoute } from "./router";
 import { colors, fontSize, radius, shadows, spacing } from "./theme";
 import type { ResumeData } from "./types";
 
@@ -48,8 +49,20 @@ const TITLES: Record<Screen["name"], { title: string; subtitle: string }> = {
 };
 
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
-  const [screen, setScreen] = useState<Screen>({ name: "dashboard" });
-  return <NavContext.Provider value={{ screen, navigate: setScreen }}>{children}</NavContext.Provider>;
+  const [screen, setScreen] = useState<Screen>(() => {
+    const routed = readRoute();
+    return routed ? ({ name: routed } as Screen) : { name: "dashboard" };
+  });
+
+  const navigate = (next: Screen) => {
+    setScreen(next);
+    writeRoute(next.name);
+  };
+
+  // Browser back/forward: only deep-linkable screens can be restored this way.
+  useEffect(() => subscribeToRoute((name) => setScreen({ name: (name ?? "dashboard") } as Screen)), []);
+
+  return <NavContext.Provider value={{ screen, navigate }}>{children}</NavContext.Provider>;
 }
 
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -108,11 +121,26 @@ export function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
+const isWeb = Platform.OS === "web";
+
+// Native reserves space for the notch/status bar; the browser has neither.
+const HEADER_TOP_INSET = isWeb ? spacing.md + 2 : Platform.OS === "android" ? 44 : 52;
+
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
+  root: {
+    flex: 1,
+    width: "100%",
+    backgroundColor: colors.background,
+    maxWidth: isWeb ? 960 : undefined,
+    alignSelf: "center",
+    minHeight: isWeb ? "100vh" : undefined,
+    borderLeftWidth: isWeb ? 1 : 0,
+    borderRightWidth: isWeb ? 1 : 0,
+    borderColor: colors.border,
+  },
   header: {
     backgroundColor: colors.surface,
-    paddingTop: Platform.OS === "android" ? 44 : 52,
+    paddingTop: HEADER_TOP_INSET,
     paddingBottom: spacing.sm + 2,
     paddingHorizontal: spacing.md + 2,
     borderBottomWidth: 1,

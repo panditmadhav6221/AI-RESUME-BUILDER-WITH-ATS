@@ -1,3 +1,6 @@
+from datetime import datetime
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -298,3 +301,49 @@ class OutreachResult(BaseModel):
     referralRequest: str = ""
     followUpNote: str = ""
     usedModel: str = ""
+
+
+# ---------------------------------------------------------------------------
+# Job Tracker (application pipeline) Models
+# ---------------------------------------------------------------------------
+
+ApplicationStatus = Literal["wishlist", "applied", "interview", "offer", "rejected"]
+
+
+class JobApplicationCreate(BaseModel):
+    userId: str
+    companyName: str
+    roleTitle: str
+    location: str | None = None
+    salary: str | None = None
+    status: ApplicationStatus = "applied"
+    dateApplied: str = ""
+    resumeId: str | None = None
+    notes: str | None = None
+
+
+class JobApplicationUpdate(BaseModel):
+    userId: str
+    companyName: str | None = None
+    roleTitle: str | None = None
+    location: str | None = None
+    salary: str | None = None
+    status: ApplicationStatus | None = None
+    dateApplied: str | None = None
+    resumeId: str | None = None
+    notes: str | None = None
+
+
+class JobApplication(BaseModel):
+    id: str
+    companyName: str
+    roleTitle: str
+    location: str | None = None
+    salary: str | None = None
+    status: ApplicationStatus = "applied"
+    dateApplied: str = ""
+    resumeId: str | None = None
+    resumeTitle: str | None = None
+    notes: str | None = None
+    createdAt: datetime | None = None
+    updatedAt: datetime | None = None

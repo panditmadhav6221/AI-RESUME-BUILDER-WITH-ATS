@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +16,7 @@ import {
   SectionHeading,
   TextField,
 } from "../components";
+import { showDialog } from "../dialog";
 import { useNav } from "../navigation";
 import { colors, fontSize, radius, shadows, spacing } from "../theme";
 import { CoverLetterResult, ResumeData } from "../types";
@@ -102,7 +102,7 @@ export function CoverLetterScreen({ resumeId, resume }: CoverLetterProps) {
 
   const copyText = () => {
     if (!result) return;
-    Alert.alert(
+    showDialog(
       "Cover Letter Ready",
       "Full letter text formatted for your application.\n\nYou can select and copy the text directly from the preview card below.",
       [{ text: "Awesome!" }],

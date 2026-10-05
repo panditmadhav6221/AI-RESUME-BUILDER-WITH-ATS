@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -20,6 +19,7 @@ import {
   SectionHeading,
   StatCard,
 } from "../components";
+import { showDialog } from "../dialog";
 import { useNav } from "../navigation";
 import { colors, fontSize, radius, shadows, spacing } from "../theme";
 import { emptyResumeData, ResumeMeta } from "../types";
@@ -116,7 +116,7 @@ export function DashboardScreen() {
   };
 
   const cloneResume = (r: ResumeMeta) =>
-    Alert.alert("Duplicate resume", "Create a tailored variant for a specific job?", [
+    showDialog("Duplicate resume", "Create a tailored variant for a specific job?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Duplicate",
@@ -139,7 +139,7 @@ export function DashboardScreen() {
     ]);
 
   const deleteResume = (r: ResumeMeta) =>
-    Alert.alert("Delete resume", `Are you sure you want to delete "${r.title}"?`, [
+    showDialog("Delete resume", `Are you sure you want to delete "${r.title}"?`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",

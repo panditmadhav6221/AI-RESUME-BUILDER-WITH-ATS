@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,6 +17,7 @@ import {
   SectionHeading,
   TextField,
 } from "../components";
+import { showDialog } from "../dialog";
 import { useNav } from "../navigation";
 import { colors, fontSize, radius, shadows, spacing } from "../theme";
 import { OutreachResult, ResumeData } from "../types";
@@ -104,7 +104,7 @@ export function OutreachScreen({ resumeId, resume }: OutreachProps) {
     });
 
   const copySuccess = (title: string) => {
-    Alert.alert(
+    showDialog(
       "Message Ready! 📋",
       `The ${title} is ready. Select and copy from the text box below to paste into LinkedIn or Gmail.`,
       [{ text: "Done" }],

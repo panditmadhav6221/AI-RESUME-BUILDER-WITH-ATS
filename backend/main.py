@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.resume import router as resume_router
 from app.api.resumes import router as saved_resumes_router
+from app.api.applications import router as applications_router
 from app.api.ats import router as ats_router
 from app.api.ai_routes import router as ai_router
 from app.api.export import router as export_router
@@ -42,6 +43,7 @@ app.add_middleware(
 
 app.include_router(resume_router)
 app.include_router(saved_resumes_router)
+app.include_router(applications_router)
 app.include_router(ats_router)
 app.include_router(ai_router)
 app.include_router(export_router)

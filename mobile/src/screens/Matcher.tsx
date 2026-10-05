@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +17,7 @@ import {
   SectionHeading,
   TextField,
 } from "../components";
+import { showDialog } from "../dialog";
 import { useNav } from "../navigation";
 import { resumeToPlainText } from "../resumeText";
 import { colors, fontSize, radius, shadows, spacing } from "../theme";
@@ -92,7 +92,7 @@ export function MatcherScreen({ resumeId, resume }: MatcherProps) {
         const userId = await getUserId();
         const result = await resumesApi.insertKeywords(userId, resumeRefId, names, "skills");
         setData(result.data);
-        Alert.alert(
+        showDialog(
           "Keywords Injected!",
           `Added ${result.insertedKeywords.length} missing skill(s) into your resume: ${result.insertedKeywords.join(", ")}`,
         );
@@ -111,7 +111,7 @@ export function MatcherScreen({ resumeId, resume }: MatcherProps) {
       setError("");
       try {
         const a = await atsApi.score(data);
-        Alert.alert(
+        showDialog(
           `ATS Score: ${a.score}/100`,
           a.summary +
             (a.issues.length ? `\n\n${a.issues.map((i) => `• ${i.message}`).join("\n")}` : ""),

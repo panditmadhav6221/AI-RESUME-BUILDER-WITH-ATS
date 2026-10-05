@@ -1,14 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import AtsScoreCard from '@/components/AtsScoreCard'
 import type { ATSAnalysis } from '@/types'
 import { Upload, Loader2, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react'
-import { parseResume } from '@/lib/api-client'
+import { parseResumeFile } from '@/lib/api'
+import { MATCHER_TEXT_KEY } from '@/lib/storage-keys'
 
 export default function AnalyzerPage() {
+  const router = useRouter()
   const [analysis, setAnalysis] = useState<ATSAnalysis | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -22,7 +24,7 @@ export default function AnalyzerPage() {
     setLoading(true)
     setError('')
     try {
-      const result = await parseResume(file)
+      const result = await parseResumeFile(file)
       setAnalysis(result.analysis)
       setResumeText(result.text)
     } catch (err) {
@@ -34,7 +36,8 @@ export default function AnalyzerPage() {
 
   const useInMatcher = () => {
     if (!resumeText) return
-    localStorage.setItem('resume-builder-text', resumeText)
+    sessionStorage.setItem(MATCHER_TEXT_KEY, resumeText)
+    router.push('/matcher')
   }
 
   return (
@@ -89,7 +92,6 @@ export default function AnalyzerPage() {
               >
                 Use this text in JD Matcher <ArrowRight className="w-4 h-4" />
               </button>
-              <Link href="/matcher" className="text-xs text-zinc-400 hover:text-zinc-600">Go to Matcher →</Link>
             </div>
           </div>
         )}

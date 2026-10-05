@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -21,6 +20,7 @@ import {
   SectionHeading,
   TextField,
 } from "../components";
+import { showDialog } from "../dialog";
 import { useNav } from "../navigation";
 import { buildSourceText } from "../resumeText";
 import { colors, fontSize, radius, shadows, spacing } from "../theme";
@@ -142,7 +142,7 @@ export function BuilderScreen(props: BuilderProps) {
         (s) => !current.some((c) => c.toLowerCase() === s.toLowerCase()),
       );
       if (!missing.length) {
-        Alert.alert("All Matched", "Your skills list already covers all top AI recommendations!");
+        showDialog("All Matched", "Your skills list already covers all top AI recommendations!");
         return;
       }
       setAiModalTitle("ATS In-Demand Skills");

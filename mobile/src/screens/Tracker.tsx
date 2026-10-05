@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -17,6 +16,7 @@ import {
   StatCard,
   TextField,
 } from "../components";
+import { showDialog } from "../dialog";
 import { useNav } from "../navigation";
 import { colors, fontSize, radius, shadows, spacing } from "../theme";
 import { ApplicationStatus, JobApplication, nextId } from "../types";
@@ -78,7 +78,7 @@ export function TrackerScreen() {
 
   const saveApplication = () => {
     if (!companyName.trim() || !roleTitle.trim()) {
-      Alert.alert("Missing Fields", "Please enter company name and role title.");
+      showDialog("Missing Fields", "Please enter company name and role title.");
       return;
     }
     const newApp: JobApplication = {
@@ -107,7 +107,7 @@ export function TrackerScreen() {
   };
 
   const deleteApp = (id: string, name: string) => {
-    Alert.alert("Delete application", `Remove ${name} from your pipeline?`, [
+    showDialog("Delete application", `Remove ${name} from your pipeline?`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",

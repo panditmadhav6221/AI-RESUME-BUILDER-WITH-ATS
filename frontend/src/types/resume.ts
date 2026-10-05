@@ -3,8 +3,8 @@ export interface ContactInfo {
   email: string
   phone: string
   location: string
-  linkedin?: string
-  website?: string
+  linkedin?: string | null
+  website?: string | null
 }
 
 export interface WorkExperience {
@@ -25,20 +25,19 @@ export interface Education {
   field: string
   startDate: string
   endDate: string
-  gpa?: string
+  gpa?: string | null
 }
 
 export interface Skill {
   id: string
   name: string
-  level?: 'beginner' | 'intermediate' | 'advanced' | 'expert'
 }
 
 export interface Project {
   id: string
   name: string
   description: string
-  url?: string
+  url?: string | null
   technologies: string[]
 }
 
@@ -47,7 +46,7 @@ export interface Certification {
   name: string
   issuer: string
   date: string
-  url?: string
+  url?: string | null
 }
 
 export interface ResumeData {
@@ -62,11 +61,21 @@ export interface ResumeData {
 
 export type TemplateId = 'modern' | 'classic' | 'minimal'
 
-export type SectionId = 'contact' | 'summary' | 'experience' | 'education' | 'skills' | 'projects' | 'certifications'
+export interface ResumeMeta {
+  id: string
+  title: string
+  targetRole?: string | null
+  template: string
+  parentId?: string | null
+  score?: number | null
+  data: ResumeData | null
+  createdAt?: string | null
+  updatedAt?: string | null
+}
 
 export interface ATSIssue {
   id: string
-  severity: 'error' | 'warning' | 'info'
+  severity: 'error' | 'warning' | 'info' | string
   category: string
   message: string
   fix: string
@@ -92,3 +101,110 @@ export interface JDAnalysis {
   keywords: string[]
   suggestions: string[]
 }
+
+export interface PassivePhraseFlag {
+  phrase: string
+  suggestion: string
+  position: number
+}
+
+export interface ImproveBulletResult {
+  original: string
+  improved: string
+  usedModel: string
+  flags: PassivePhraseFlag[]
+}
+
+export interface GenerateSummaryResult {
+  summary: string
+  usedModel: string
+}
+
+export interface SuggestSkillsResult {
+  skills: string[]
+  usedModel: string
+}
+
+export interface TailorResult {
+  tailored: ResumeData
+  guardrailWarnings: string[]
+  usedModel: string
+}
+
+export interface InsertKeywordsResult extends ResumeMeta {
+  insertedKeywords: string[]
+  message: string
+}
+
+export interface CoverLetterResult {
+  salutation: string
+  opening: string
+  bodyParagraphs: string[]
+  closing: string
+  signoff: string
+  fullText: string
+  usedModel: string
+}
+
+export interface STARAnswer {
+  situation: string
+  task: string
+  action: string
+  result: string
+}
+
+export type QuestionType = 'behavioral' | 'technical' | 'leadership' | string
+
+export interface InterviewQuestion {
+  id: string
+  type: QuestionType
+  question: string
+  whyAsked: string
+  keyPointsToCover: string[]
+  sampleStarAnswer?: STARAnswer | null
+}
+
+export interface InterviewPrepResult {
+  role: string
+  questions: InterviewQuestion[]
+  generalTips: string[]
+  usedModel: string
+}
+
+export interface RecruiterAuditResult {
+  firstImpression: string
+  callbackProbability: number
+  strengths: string[]
+  redFlags: string[]
+  top3Fixes: string[]
+  executiveVerdict: string
+  usedModel: string
+}
+
+export interface OutreachResult {
+  connectionNote: string
+  coldEmailSubject: string
+  coldEmailBody: string
+  referralRequest: string
+  followUpNote: string
+  usedModel: string
+}
+
+export type ApplicationStatus = 'wishlist' | 'applied' | 'interview' | 'offer' | 'rejected'
+
+export interface JobApplication {
+  id: string
+  companyName: string
+  roleTitle: string
+  location?: string | null
+  salary?: string | null
+  status: ApplicationStatus
+  dateApplied: string
+  resumeId?: string | null
+  resumeTitle?: string | null
+  notes?: string | null
+}
+
+export type CoverLetterTone = 'professional' | 'enthusiastic' | 'executive'
+
+export type ContactType = 'hiring_manager' | 'recruiter' | 'alumni'

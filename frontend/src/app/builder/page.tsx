@@ -1,378 +1,797 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
-import Navbar from '@/components/Navbar'
-import ResumeForm from '@/components/ResumeForm'
-import ResumePreview from '@/components/ResumePreview'
-import AtsScoreCard from '@/components/AtsScoreCard'
-import type { ResumeData, TemplateId, ATSAnalysis } from '@/types'
+import { Suspense, useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
-  saveResume, listResumes, getResume, updateResume, deleteResume,
-  exportPDF, exportDOCX, downloadBlob, scoreResume, tailorResume,
-  type SavedResumeSummary,
-} from '@/lib/api-client'
-import { resumeToText } from '@/lib/resume-text'
-import { Loader2, Save, FolderOpen, FileDown, FileText, Gauge, Sparkles, Trash2, X } from 'lucide-react'
+  Award,
+  Eye,
+  FileText,
+  FolderGit2,
+  GraduationCap,
+  Plus,
+  Save,
+  Sparkles,
+  Target,
+  User,
+  Wand2,
+  X,
+} from 'lucide-react'
+import Navbar from '@/components/Navbar'
+import Card from '@/components/ui/Card'
+import Button from '@/components/ui/Button'
+import ErrorBanner from '@/components/ui/ErrorBanner'
+import PillTabs from '@/components/ui/PillTabs'
+import SectionHeading from '@/components/ui/SectionHeading'
+import { TextArea, TextField } from '@/components/ui/Field'
+import { Chip } from '@/components/ui/Chip'
+import AiDiffModal, { AiNotice, type PendingAiChange } from '@/components/ui/AiDiffModal'
+import { Loading } from '@/components/ui/Loading'
+import { aiApi, resumesApi } from '@/lib/api'
+import { getUserId } from '@/lib/user-id'
+import { buildSourceText } from '@/lib/resume-text'
+import { BUILDER_DRAFT_KEY } from '@/lib/storage-keys'
+import { emptyResumeData, nextId } from '@/lib/id'
+import type { ResumeData, TemplateId } from '@/types'
 
-const EMPTY_RESUME: ResumeData = {
-  contact: { fullName: '', email: '', phone: '', location: '', linkedin: '', website: '' },
-  summary: '',
-  experience: [],
-  education: [],
-  skills: [],
-  projects: [],
-  certifications: [],
+type TabKey = 'contact' | 'summary' | 'experience' | 'education' | 'skills' | 'projects' | 'certifications'
+type Busy = null | 'load' | 'save' | 'summary' | 'skills' | 'bullets'
+
+const TABS = [
+  { key: 'contact', label: 'Contact', icon: <User className="w-3.5 h-3.5" /> },
+  { key: 'summary', label: 'Summary', icon: <FileText className="w-3.5 h-3.5" /> },
+  { key: 'experience', label: 'Experience', icon: <FolderGit2 className="w-3.5 h-3.5" /> },
+  { key: 'education', label: 'Education', icon: <GraduationCap className="w-3.5 h-3.5" /> },
+  { key: 'skills', label: 'Skills', icon: <Sparkles className="w-3.5 h-3.5" /> },
+  { key: 'projects', label: 'Projects', icon: <FolderGit2 className="w-3.5 h-3.5" /> },
+  { key: 'certifications', label: 'Certs', icon: <Award className="w-3.5 h-3.5" /> },
+] as const
+
+interface Draft {
+  id: string | null
+  title: string
+  targetRole: string
+  template: TemplateId
+  data: ResumeData
 }
 
-const STORAGE_KEYS = {
-  data: 'resume-builder-data',
-  template: 'resume-builder-template',
-  text: 'resume-builder-text',
-  userId: 'resume-builder-user-id',
-}
+function BuilderContent() {
+  const router = useRouter()
+  const params = useSearchParams()
+  const resumeId = params.get('id')
 
-function getUserId(): string {
-  let id = localStorage.getItem(STORAGE_KEYS.userId)
-  if (!id) {
-    id = crypto.randomUUID()
-    localStorage.setItem(STORAGE_KEYS.userId, id)
-  }
-  return id
-}
-
-function loadSavedData(): ResumeData | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.data)
-    if (!raw) return null
-    const parsed = JSON.parse(raw)
-    return { ...EMPTY_RESUME, ...parsed, contact: { ...EMPTY_RESUME.contact, ...parsed.contact } }
-  } catch {
-    return null
-  }
-}
-
-function loadSavedTemplate(): TemplateId {
-  if (typeof window === 'undefined') return 'modern'
-  const t = localStorage.getItem(STORAGE_KEYS.template)
-  return t === 'modern' || t === 'classic' || t === 'minimal' ? t : 'modern'
-}
-
-export default function BuilderPage() {
-  const [data, setData] = useState<ResumeData>(() => loadSavedData() ?? EMPTY_RESUME)
-  const [template, setTemplate] = useState<TemplateId>(() => loadSavedTemplate())
-  const [showPreview, setShowPreview] = useState(true)
-  const [title, setTitle] = useState('My Resume')
-  const [savedId, setSavedId] = useState<string | null>(null)
-  const [savedList, setSavedList] = useState<SavedResumeSummary[]>([])
-  const [showLoadMenu, setShowLoadMenu] = useState(false)
-  const [busy, setBusy] = useState<null | 'save' | 'load' | 'pdf' | 'docx' | 'score' | 'tailor' | 'delete'>(null)
-  const [status, setStatus] = useState('')
-  const [statusError, setStatusError] = useState('')
-  const [atsAnalysis, setAtsAnalysis] = useState<ATSAnalysis | null>(null)
-  const [showTailor, setShowTailor] = useState(false)
-  const [tailorJd, setTailorJd] = useState('')
+  const [tab, setTab] = useState<TabKey>('contact')
+  const [draft, setDraft] = useState<Draft>({
+    id: null,
+    title: 'Untitled Resume',
+    targetRole: '',
+    template: 'modern',
+    data: emptyResumeData(),
+  })
+  const [hydrated, setHydrated] = useState(false)
+  const [busy, setBusy] = useState<Busy>(null)
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState('')
+  const [skillInput, setSkillInput] = useState('')
+  const [pendingChange, setPendingChange] = useState<PendingAiChange | null>(null)
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.data, JSON.stringify(data))
-    localStorage.setItem(STORAGE_KEYS.template, template)
-    localStorage.setItem(STORAGE_KEYS.text, resumeToText(data))
-  }, [data, template])
+    let cancelled = false
+    const hydrate = async () => {
+      if (resumeId) {
+        setBusy('load')
+        try {
+          const full = await resumesApi.get(getUserId(), resumeId)
+          if (cancelled) return
+          setDraft({
+            id: full.id,
+            title: full.title,
+            targetRole: full.targetRole ?? '',
+            template: (full.template as TemplateId) ?? 'modern',
+            data: full.data ?? emptyResumeData(),
+          })
+        } catch (e) {
+          if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load resume')
+        } finally {
+          if (!cancelled) setBusy(null)
+        }
+      } else {
+        try {
+          const raw = localStorage.getItem(BUILDER_DRAFT_KEY)
+          if (raw && !cancelled) {
+            const parsed = JSON.parse(raw) as Draft
+            if (parsed?.data) setDraft({ ...parsed, id: null })
+          }
+        } catch {
+          // ignore corrupt draft
+        }
+      }
+      if (!cancelled) setHydrated(true)
+    }
+    void hydrate()
+    return () => {
+      cancelled = true
+    }
+  }, [resumeId])
 
-  const updateData = useCallback((updater: (prev: ResumeData) => ResumeData) => {
-    setData(updater)
-    setAtsAnalysis(null)
+  useEffect(() => {
+    if (!hydrated || draft.id) return
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(BUILDER_DRAFT_KEY, JSON.stringify(draft))
+      } catch {
+        // storage full / private mode
+      }
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [draft, hydrated])
+
+  const patch = useCallback((update: Partial<ResumeData>) => {
+    setDraft((d) => ({ ...d, data: { ...d.data, ...update } }))
   }, [])
+
+  const updateListItem = useCallback(
+    <K extends 'experience' | 'education' | 'projects' | 'certifications'>(key: K, index: number, fields: Partial<ResumeData[K][number]>) => {
+      setDraft((d) => {
+        const next = [...d.data[key]]
+        next[index] = { ...next[index], ...fields }
+        return { ...d, data: { ...d.data, [key]: next } }
+      })
+    },
+    [],
+  )
+
+  const removeListItem = useCallback(
+    (key: 'experience' | 'education' | 'projects' | 'certifications', index: number) => {
+      setDraft((d) => ({ ...d, data: { ...d.data, [key]: d.data[key].filter((_, i) => i !== index) } }))
+    },
+    [],
+  )
 
   const handleSave = async () => {
     setBusy('save')
-    setStatus('')
-    setStatusError('')
+    setError('')
+    setSaved('')
     try {
       const userId = getUserId()
-      if (savedId) {
-        await updateResume(savedId, { title: title.trim() || 'Untitled Resume', data, template })
-        setStatus('Resume updated on server.')
+      const title = draft.title.trim() || 'Untitled Resume'
+      if (draft.id) {
+        await resumesApi.update(userId, draft.id, {
+          title,
+          data: draft.data,
+          template: draft.template,
+          targetRole: draft.targetRole || null,
+        })
+        localStorage.removeItem(BUILDER_DRAFT_KEY)
+        setSaved('Resume updated.')
       } else {
-        const created = await saveResume(userId, title.trim() || 'Untitled Resume', data, template)
-        setSavedId(created.id)
-        setStatus('Resume saved on server.')
+        const created = await resumesApi.save(userId, title, draft.data, draft.template, draft.targetRole || null)
+        localStorage.removeItem(BUILDER_DRAFT_KEY)
+        setDraft((d) => ({ ...d, id: created.id, title }))
+        setSaved('Resume saved to your dashboard.')
+        router.replace(`/builder?id=${created.id}`)
       }
-      refreshList()
-    } catch (err) {
-      setStatusError(err instanceof Error ? err.message : 'Failed to save. Is the backend and MongoDB running?')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save resume')
     } finally {
       setBusy(null)
     }
   }
 
-  const refreshList = async () => {
-    try {
-      const userId = localStorage.getItem(STORAGE_KEYS.userId)
-      if (!userId) return
-      setSavedList(await listResumes(userId))
-    } catch {
-      // server unreachable - ignore
+  const aiSummary = async () => {
+    const source = buildSourceText(draft.data)
+    if (!source.trim()) {
+      setError('Please add some experience or education first so the AI has context.')
+      return
     }
-  }
-
-  const handleLoad = async (id: string) => {
-    setBusy('load')
-    setStatusError('')
-    setStatus('')
-    setShowLoadMenu(false)
+    setBusy('summary')
+    setError('')
     try {
-      const resume = await getResume(id)
-      setData(resume.data)
-      setTitle(resume.title)
-      setSavedId(resume.id)
-      setTemplate(resume.template as TemplateId)
-      setAtsAnalysis(null)
-      setStatus('Resume loaded from server.')
-    } catch (err) {
-      setStatusError(err instanceof Error ? err.message : 'Failed to load resume')
+      const result = await aiApi.generateSummary(source, draft.targetRole || null)
+      const improved = result.summary.trim()
+      setPendingChange({
+        title: 'Rewrite your summary',
+        subtitle: 'AI will rewrite the summary to be ATS-friendly and role-targeted',
+        original: draft.data.summary,
+        proposed: improved,
+        accept: () => patch({ summary: improved }),
+        regenerate: aiSummary,
+      })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to generate summary')
     } finally {
       setBusy(null)
     }
   }
 
-  const handleDelete = async (id: string) => {
-    setBusy('delete')
-    setStatusError('')
+  const aiSkills = async () => {
+    const role = draft.targetRole.trim() || draft.data.experience[0]?.position || ''
+    if (!role) {
+      setError('Please specify a Target Role at the top of the builder so AI can recommend relevant skills.')
+      return
+    }
+    setBusy('skills')
+    setError('')
     try {
-      await deleteResume(id)
-      if (id === savedId) {
-        setSavedId(null)
-        setStatus('Saved resume deleted.')
+      const current = draft.data.skills.map((s) => s.name)
+      const result = await aiApi.suggestSkills(role, current)
+      const missing = result.skills.filter(
+        (s) => s.trim() && !current.some((c) => c.toLowerCase() === s.trim().toLowerCase()),
+      )
+      if (missing.length === 0) {
+        setSaved('All matched — your skills already cover the top AI recommendations.')
+        return
       }
-      refreshList()
-    } catch (err) {
-      setStatusError(err instanceof Error ? err.message : 'Failed to delete resume')
+      setPendingChange({
+        title: 'Add recommended skills',
+        subtitle: 'AI picked these ATS keywords for your target role',
+        proposed: missing.join('  •  '),
+        accept: () =>
+          patch({ skills: [...draft.data.skills, ...missing.map((name) => ({ id: nextId('sk'), name }))] }),
+        regenerate: aiSkills,
+      })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to suggest skills')
     } finally {
       setBusy(null)
     }
   }
 
-  const handleNew = () => {
-    setData(EMPTY_RESUME)
-    setTitle('My Resume')
-    setSavedId(null)
-    setAtsAnalysis(null)
-    setStatus('Started a new resume.')
-  }
-
-  const handleExport = async (kind: 'pdf' | 'docx') => {
-    setBusy(kind)
-    setStatusError('')
+  const aiSharpenBullets = async (index: number) => {
+    const exp = draft.data.experience[index]
+    const raw = exp.bullets.filter((b) => b.trim()).join('\n')
+    if (!raw.trim()) {
+      setError('Add at least one bullet to sharpen first.')
+      return
+    }
+    setBusy('bullets')
+    setError('')
     try {
-      const blob = kind === 'pdf' ? await exportPDF(data) : await exportDOCX(data)
-      const base = (data.contact.fullName || 'resume').trim().replace(/\s+/g, '-')
-      downloadBlob(blob, `${base}.${kind}`)
-      setStatus(`${kind.toUpperCase()} exported.`)
-    } catch (err) {
-      setStatusError(err instanceof Error ? err.message : `Failed to export ${kind.toUpperCase()}`)
+      const normalize = (value: string) =>
+        value
+          .trim()
+          .split('\n')
+          .map((l) => l.replace(/^[-•*]\s*/, '').trim())
+          .filter(Boolean)
+
+      const result = await aiApi.improveBullet(raw, exp.position)
+      setPendingChange({
+        title: 'Sharpen achievement bullets',
+        subtitle: 'Action verbs + quantified impact wins ATS ranking',
+        original: raw,
+        proposed: result.improved.trim(),
+        accept: () => updateListItem('experience', index, { bullets: normalize(result.improved) }),
+        regenerate: () => aiSharpenBullets(index),
+      })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to sharpen bullets')
     } finally {
       setBusy(null)
     }
   }
 
-  const handleScore = async () => {
-    setBusy('score')
-    setStatusError('')
-    try {
-      const result = await scoreResume(data)
-      setAtsAnalysis(result)
-    } catch (err) {
-      setStatusError(err instanceof Error ? err.message : 'Failed to score resume')
-    } finally {
-      setBusy(null)
-    }
+  const addSkill = () => {
+    const name = skillInput.trim()
+    if (!name) return
+    const exists = draft.data.skills.some((s) => s.name.toLowerCase() === name.toLowerCase())
+    if (!exists) patch({ skills: [...draft.data.skills, { id: nextId('sk'), name }] })
+    setSkillInput('')
   }
 
-  const handleTailor = async () => {
-    if (!tailorJd.trim()) return
-    setBusy('tailor')
-    setStatusError('')
-    try {
-      const result = await tailorResume(data, tailorJd.trim())
-      setData(result.tailored as ResumeData)
-      setAtsAnalysis(null)
-      setShowTailor(false)
-      setTailorJd('')
-      setStatus('Resume tailored to the job description.')
-    } catch (err) {
-      setStatusError(err instanceof Error ? err.message : 'Failed to tailor resume')
-    } finally {
-      setBusy(null)
-    }
+  const previewHref = draft.id ? `/preview?id=${draft.id}` : '/preview?draft=1'
+
+  const d = draft.data
+
+  const panels = {
+    contact: (
+        <Card>
+          <SectionHeading title="Contact Information" subtitle="Essential details for recruiter contact & ATS parsing" />
+          <div className="grid sm:grid-cols-2 gap-x-4">
+            <TextField
+              label="Full Name *"
+              value={d.contact.fullName}
+              onChange={(e) => patch({ contact: { ...d.contact, fullName: e.target.value } })}
+            />
+            <TextField
+              label="Location (City, State / Country)"
+              value={d.contact.location}
+              onChange={(e) => patch({ contact: { ...d.contact, location: e.target.value } })}
+            />
+            <TextField
+              label="Email *"
+              type="email"
+              value={d.contact.email}
+              onChange={(e) => patch({ contact: { ...d.contact, email: e.target.value } })}
+            />
+            <TextField
+              label="Phone *"
+              type="tel"
+              value={d.contact.phone}
+              onChange={(e) => patch({ contact: { ...d.contact, phone: e.target.value } })}
+            />
+            <TextField
+              label="LinkedIn URL"
+              value={d.contact.linkedin ?? ''}
+              onChange={(e) => patch({ contact: { ...d.contact, linkedin: e.target.value } })}
+            />
+            <TextField
+              label="Portfolio / GitHub URL"
+              value={d.contact.website ?? ''}
+              onChange={(e) => patch({ contact: { ...d.contact, website: e.target.value } })}
+            />
+          </div>
+        </Card>
+      ),
+      summary: (
+        <Card>
+          <SectionHeading
+            title="Professional Summary"
+            subtitle="2-4 sentences highlighting your core impact and target role"
+            action={
+              <Button size="sm" variant="sparkle" loading={busy === 'summary'} onClick={aiSummary} icon={<Wand2 className="w-3.5 h-3.5" />}>
+                AI Generate
+              </Button>
+            }
+          />
+          <TextArea
+            rows={6}
+            value={d.summary}
+            onChange={(e) => patch({ summary: e.target.value })}
+            placeholder="Results-driven professional with 5+ years of experience in..."
+          />
+          <AiNotice>
+            <span className="font-semibold text-zinc-800">ATS Tip:</span> Include your target job title, years of
+            experience, and 2-3 key technical proficiencies in your summary.
+          </AiNotice>
+        </Card>
+      ),
+      experience: (
+        <Card>
+          <SectionHeading
+            title="Work Experience"
+            subtitle="Quantified bullets starting with strong action verbs"
+            action={
+              <Button
+                size="sm"
+                variant="outline"
+                icon={<Plus className="w-3.5 h-3.5" />}
+                onClick={() =>
+                  patch({
+                    experience: [
+                      ...d.experience,
+                      { id: nextId('exp'), company: '', position: '', location: '', startDate: '', endDate: '', current: false, bullets: [] },
+                    ],
+                  })
+                }
+              >
+                Add Position
+              </Button>
+            }
+          />
+          {d.experience.length === 0 ? (
+            <p className="text-sm text-zinc-500 rounded-xl border border-dashed border-border p-6 text-center">
+              No work experience added yet. Use “Add Position” to build your career history.
+            </p>
+          ) : (
+            <div className="space-y-5">
+              {d.experience.map((exp, i) => (
+                <div key={exp.id} className="rounded-xl border border-border p-4">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Position {i + 1}</p>
+                    <button
+                      type="button"
+                      onClick={() => removeListItem('experience', i)}
+                      className="text-zinc-400 hover:text-error"
+                      aria-label="Remove position"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-x-4">
+                    <TextField
+                      label="Company / Employer *"
+                      value={exp.company}
+                      onChange={(e) => updateListItem('experience', i, { company: e.target.value })}
+                    />
+                    <TextField
+                      label="Job Title / Role *"
+                      value={exp.position}
+                      onChange={(e) => updateListItem('experience', i, { position: e.target.value })}
+                    />
+                    <TextField
+                      label="Location"
+                      value={exp.location}
+                      onChange={(e) => updateListItem('experience', i, { location: e.target.value })}
+                    />
+                    <TextField
+                      label="Start Date (MM/YYYY)"
+                      value={exp.startDate}
+                      placeholder="03/2021"
+                      onChange={(e) => updateListItem('experience', i, { startDate: e.target.value })}
+                    />
+                    <TextField
+                      label={exp.current ? 'End Date (Present)' : 'End Date (MM/YYYY)'}
+                      value={exp.current ? 'Present' : exp.endDate}
+                      disabled={exp.current}
+                      placeholder="02/2024"
+                      onChange={(e) => updateListItem('experience', i, { endDate: e.target.value })}
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-[13px] font-medium text-zinc-700 mb-4">
+                    <input
+                      type="checkbox"
+                      checked={exp.current}
+                      onChange={(e) => updateListItem('experience', i, { current: e.target.checked })}
+                      className="w-4 h-4 rounded border-border text-primary"
+                    />
+                    I currently work here
+                  </label>
+
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Achievement Bullets</p>
+                    <Button
+                      size="sm"
+                      variant="sparkle"
+                      loading={busy === 'bullets'}
+                      onClick={() => aiSharpenBullets(i)}
+                      icon={<Wand2 className="w-3.5 h-3.5" />}
+                    >
+                      AI Polish
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {exp.bullets.map((bullet, bi) => (
+                      <div key={bi} className="flex items-start gap-2">
+                        <span className="text-zinc-400 mt-3">•</span>
+                        <TextArea
+                          rows={2}
+                          value={bullet}
+                          onChange={(e) => {
+                            const bullets = [...exp.bullets]
+                            bullets[bi] = e.target.value
+                            updateListItem('experience', i, { bullets })
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateListItem('experience', i, { bullets: exp.bullets.filter((_, k) => k !== bi) })
+                          }
+                          className="text-zinc-400 hover:text-error mt-3"
+                          aria-label="Remove bullet"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="mt-2"
+                    icon={<Plus className="w-3.5 h-3.5" />}
+                    onClick={() => updateListItem('experience', i, { bullets: [...exp.bullets, ''] })}
+                  >
+                    Add Bullet
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      ),
+      education: (
+        <Card>
+          <SectionHeading
+            title="Education"
+            subtitle="Degrees, colleges/universities, and graduation dates"
+            action={
+              <Button
+                size="sm"
+                variant="outline"
+                icon={<Plus className="w-3.5 h-3.5" />}
+                onClick={() =>
+                  patch({
+                    education: [
+                      ...d.education,
+                      { id: nextId('edu'), institution: '', degree: '', field: '', startDate: '', endDate: '', gpa: '' },
+                    ],
+                  })
+                }
+              >
+                Add Degree
+              </Button>
+            }
+          />
+          <div className="space-y-5">
+            {d.education.map((edu, i) => (
+              <div key={edu.id} className="rounded-xl border border-border p-4">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Degree {i + 1}</p>
+                  <button
+                    type="button"
+                    onClick={() => removeListItem('education', i)}
+                    className="text-zinc-400 hover:text-error"
+                    aria-label="Remove degree"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-x-4">
+                  <TextField
+                    label="Institution / University *"
+                    value={edu.institution}
+                    onChange={(e) => updateListItem('education', i, { institution: e.target.value })}
+                  />
+                  <TextField
+                    label="Degree *"
+                    value={edu.degree}
+                    onChange={(e) => updateListItem('education', i, { degree: e.target.value })}
+                  />
+                  <TextField
+                    label="Major / Field of Study"
+                    value={edu.field}
+                    onChange={(e) => updateListItem('education', i, { field: e.target.value })}
+                  />
+                  <TextField
+                    label="Graduation Date (MM/YYYY)"
+                    value={edu.endDate}
+                    onChange={(e) => updateListItem('education', i, { endDate: e.target.value })}
+                  />
+                  <TextField
+                    label="GPA (Optional)"
+                    value={edu.gpa ?? ''}
+                    onChange={(e) => updateListItem('education', i, { gpa: e.target.value })}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      ),
+      skills: (
+        <Card>
+          <SectionHeading
+            title="Skills & Competencies"
+            subtitle="Core hard skills & technologies recognizable by ATS parsers"
+            action={
+              <Button size="sm" variant="sparkle" loading={busy === 'skills'} onClick={aiSkills} icon={<Wand2 className="w-3.5 h-3.5" />}>
+                AI Suggest
+              </Button>
+            }
+          />
+          {d.skills.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {d.skills.map((skill) => (
+                <Chip
+                  key={skill.id}
+                  label={skill.name}
+                  tone="primary"
+                  onRemove={() => patch({ skills: d.skills.filter((s) => s.id !== skill.id) })}
+                />
+              ))}
+            </div>
+          )}
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <TextField
+                label="Add a skill"
+                value={skillInput}
+                placeholder="e.g. Python, Docker"
+                onChange={(e) => setSkillInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addSkill()
+                  }
+                }}
+              />
+            </div>
+            <Button onClick={addSkill} icon={<Plus className="w-4 h-4" />}>
+              Add
+            </Button>
+          </div>
+        </Card>
+      ),
+      projects: (
+        <Card>
+          <SectionHeading
+            title="Projects"
+            subtitle="Highlight key portfolio projects & technical stack"
+            action={
+              <Button
+                size="sm"
+                variant="outline"
+                icon={<Plus className="w-3.5 h-3.5" />}
+                onClick={() =>
+                  patch({ projects: [...d.projects, { id: nextId('proj'), name: '', description: '', url: '', technologies: [] }] })
+                }
+              >
+                Add Project
+              </Button>
+            }
+          />
+          <div className="space-y-5">
+            {d.projects.map((proj, i) => (
+              <div key={proj.id} className="rounded-xl border border-border p-4">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Project {i + 1}</p>
+                  <button
+                    type="button"
+                    onClick={() => removeListItem('projects', i)}
+                    className="text-zinc-400 hover:text-error"
+                    aria-label="Remove project"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <TextField
+                  label="Project Name *"
+                  value={proj.name}
+                  onChange={(e) => updateListItem('projects', i, { name: e.target.value })}
+                />
+                <TextArea
+                  label="Description"
+                  rows={3}
+                  value={proj.description}
+                  onChange={(e) => updateListItem('projects', i, { description: e.target.value })}
+                />
+                <div className="grid sm:grid-cols-2 gap-x-4">
+                  <TextField
+                    label="Live URL / Repository"
+                    value={proj.url ?? ''}
+                    onChange={(e) => updateListItem('projects', i, { url: e.target.value })}
+                  />
+                  <TextField
+                    label="Technologies (comma separated)"
+                    value={proj.technologies.join(', ')}
+                    onChange={(e) =>
+                      updateListItem('projects', i, {
+                        technologies: e.target.value
+                          .split(',')
+                          .map((t) => t.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      ),
+      certifications: (
+        <Card>
+          <SectionHeading
+            title="Certifications & Licenses"
+            subtitle="Recognized credentials with issuer & dates"
+            action={
+              <Button
+                size="sm"
+                variant="outline"
+                icon={<Plus className="w-3.5 h-3.5" />}
+                onClick={() =>
+                  patch({ certifications: [...d.certifications, { id: nextId('cert'), name: '', issuer: '', date: '', url: '' }] })
+                }
+              >
+                Add Cert
+              </Button>
+            }
+          />
+          <div className="space-y-5">
+            {d.certifications.map((cert, i) => (
+              <div key={cert.id} className="rounded-xl border border-border p-4">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Certificate {i + 1}</p>
+                  <button
+                    type="button"
+                    onClick={() => removeListItem('certifications', i)}
+                    className="text-zinc-400 hover:text-error"
+                    aria-label="Remove certificate"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-x-4">
+                  <TextField
+                    label="Certification Name *"
+                    value={cert.name}
+                    onChange={(e) => updateListItem('certifications', i, { name: e.target.value })}
+                  />
+                  <TextField
+                    label="Issuer"
+                    value={cert.issuer}
+                    onChange={(e) => updateListItem('certifications', i, { issuer: e.target.value })}
+                  />
+                  <TextField
+                    label="Date Received"
+                    value={cert.date}
+                    onChange={(e) => updateListItem('certifications', i, { date: e.target.value })}
+                  />
+                  <TextField
+                    label="Credential URL"
+                    value={cert.url ?? ''}
+                    onChange={(e) => updateListItem('certifications', i, { url: e.target.value })}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      ),
   }
 
-  const actionBtn = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+  if (busy === 'load' && !hydrated) {
+    return (
+      <>
+        <Navbar />
+        <Loading label="Loading your resume…" />
+      </>
+    )
+  }
 
   return (
     <>
       <Navbar />
-      <div className="flex-1 flex flex-col">
-        <div className="border-b border-border bg-white px-4 py-3 space-y-3">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="font-semibold text-zinc-900">Resume Builder</h1>
-              <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-0.5">
-                {(['modern', 'classic', 'minimal'] as TemplateId[]).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setTemplate(t)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors capitalize ${
-                      template === t ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <button
-              onClick={() => setShowPreview(!showPreview)}
-              className="text-sm text-zinc-600 hover:text-zinc-900 lg:hidden"
-            >
-              {showPreview ? 'Hide Preview' : 'Show Preview'}
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
+      <div className="sticky top-16 z-30 border-b border-border bg-white/95 backdrop-blur">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
             <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Resume title"
-              className="px-3 py-1.5 border border-border rounded-lg text-sm w-44"
+              value={draft.title}
+              onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+              placeholder="Resume Title (e.g. Tech Lead)"
+              className="flex-1 min-w-[180px] px-3 py-2 rounded-lg bg-surface border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
-            <button onClick={handleSave} disabled={busy !== null} className={`${actionBtn} bg-primary text-white hover:bg-primary-dark`}>
-              {busy === 'save' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-              {savedId ? 'Update' : 'Save'}
-            </button>
-            <div className="relative">
-              <button
-                onClick={() => { setShowLoadMenu(!showLoadMenu); refreshList() }}
-                disabled={busy !== null}
-                className={`${actionBtn} bg-zinc-100 text-zinc-700 hover:bg-zinc-200`}
-              >
-                {busy === 'load' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FolderOpen className="w-3.5 h-3.5" />}
-                Load
-              </button>
-              {showLoadMenu && (
-                <div className="absolute z-20 top-full mt-1 left-0 w-72 bg-white border border-border rounded-xl shadow-lg p-2 max-h-80 overflow-y-auto">
-                  {savedList.length === 0 ? (
-                    <p className="text-xs text-zinc-400 p-2">No saved resumes yet. Click Save first.</p>
-                  ) : (
-                    savedList.map((r) => (
-                      <div key={r.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-zinc-50">
-                        <button onClick={() => handleLoad(r.id)} className="flex-1 text-left">
-                          <p className="text-sm font-medium text-zinc-800">{r.title}</p>
-                          <p className="text-[11px] text-zinc-400">
-                            {r.template} template{r.score !== null && r.score !== undefined ? ` · ATS ${r.score}/100` : ''} · {new Date(r.updatedAt).toLocaleDateString()}
-                          </p>
-                        </button>
-                        <button onClick={() => handleDelete(r.id)} className="text-zinc-400 hover:text-error" title="Delete">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-            <button onClick={handleNew} className={`${actionBtn} bg-zinc-100 text-zinc-700 hover:bg-zinc-200`}>
-              New
-            </button>
-            <div className="w-px h-6 bg-border mx-1 hidden sm:block" />
-            <button onClick={handleScore} disabled={busy !== null} className={`${actionBtn} bg-zinc-100 text-zinc-700 hover:bg-zinc-200`}>
-              {busy === 'score' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Gauge className="w-3.5 h-3.5" />}
-              ATS Score
-            </button>
-            <button onClick={() => setShowTailor(true)} disabled={busy !== null} className={`${actionBtn} bg-secondary/10 text-secondary hover:bg-secondary/20`}>
-              <Sparkles className="w-3.5 h-3.5" />
-              AI Tailor
-            </button>
-            <button onClick={() => handleExport('pdf')} disabled={busy !== null} className={`${actionBtn} bg-zinc-100 text-zinc-700 hover:bg-zinc-200`}>
-              {busy === 'pdf' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
-              PDF
-            </button>
-            <button onClick={() => handleExport('docx')} disabled={busy !== null} className={`${actionBtn} bg-zinc-100 text-zinc-700 hover:bg-zinc-200`}>
-              {busy === 'docx' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
-              DOCX
-            </button>
+            <Link
+              href={previewHref}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold border border-primary text-primary hover:bg-primary/5"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              Preview
+            </Link>
+            <Button size="sm" loading={busy === 'save'} onClick={handleSave} icon={<Save className="w-3.5 h-3.5" />}>
+              Save
+            </Button>
           </div>
-
-          {status && <p className="text-xs text-success">{status}</p>}
-          {statusError && <p className="text-xs text-error">{statusError}</p>}
-        </div>
-
-        {atsAnalysis && (
-          <div className="border-b border-border bg-zinc-50 px-4 py-4">
-            <div className="max-w-2xl mx-auto relative">
-              <button
-                onClick={() => setAtsAnalysis(null)}
-                className="absolute -top-2 -right-2 text-zinc-400 hover:text-zinc-700"
-                title="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-              <AtsScoreCard analysis={atsAnalysis} />
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-semibold text-zinc-500 inline-flex items-center gap-1.5 shrink-0">
+              <Target className="w-3.5 h-3.5" />
+              Role:
+            </span>
+            <input
+              value={draft.targetRole}
+              onChange={(e) => setDraft((d) => ({ ...d, targetRole: e.target.value }))}
+              placeholder="Target role (e.g. Senior React Native Dev)"
+              className="flex-1 px-3 py-2 rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
           </div>
-        )}
-
-        {showTailor && (
-          <div className="fixed inset-0 z-30 bg-black/40 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold text-zinc-900 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-secondary" /> Tailor Resume with AI
-                </h2>
-                <button onClick={() => setShowTailor(false)} className="text-zinc-400 hover:text-zinc-700">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <p className="text-xs text-zinc-500 mb-3">
-                Paste the job description and AI will rewrite your summary and experience to match it. Your current resume will be replaced.
-              </p>
-              <textarea
-                value={tailorJd}
-                onChange={(e) => setTailorJd(e.target.value)}
-                rows={10}
-                placeholder="Paste the full job description here..."
-                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
-              />
-              <div className="flex justify-end gap-2 mt-4">
-                <button onClick={() => setShowTailor(false)} className="px-4 py-2 text-sm text-zinc-600 hover:text-zinc-900">
-                  Cancel
-                </button>
-                <button
-                  onClick={handleTailor}
-                  disabled={busy !== null || !tailorJd.trim()}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium disabled:opacity-50"
-                >
-                  {busy === 'tailor' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  Tailor Resume
-                </button>
-              </div>
-              {statusError && busy === 'tailor' && <p className="text-xs text-error mt-3">{statusError}</p>}
-            </div>
-          </div>
-        )}
-
-        <div className="flex-1 flex">
-          <div className={`flex-1 overflow-y-auto p-4 lg:p-6 ${showPreview ? 'lg:border-r lg:border-border' : ''}`}>
-            <ResumeForm data={data} onUpdate={updateData} />
-          </div>
-          {showPreview && (
-            <div className="hidden lg:block w-[500px] xl:w-[600px] overflow-y-auto bg-zinc-50 p-6">
-              <ResumePreview data={data} template={template} />
-            </div>
-          )}
         </div>
       </div>
+
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+        {error && <ErrorBanner message={error} />}
+        {saved && <p className="text-[13px] font-medium text-emerald-600">{saved}</p>}
+
+        <PillTabs tabs={TABS} activeTab={tab} onTabChange={setTab} label="Resume sections" />
+
+        {panels[tab]}
+
+        <div className="flex justify-end pt-2">
+          <Button loading={busy === 'save'} onClick={handleSave} icon={<Save className="w-4 h-4" />}>
+            {draft.id ? 'Update Resume' : 'Save Resume'}
+          </Button>
+        </div>
+      </main>
+
+      <AiDiffModal change={pendingChange} loading={busy === 'summary' || busy === 'skills' || busy === 'bullets'} onClose={() => setPendingChange(null)} />
     </>
+  )
+}
+
+export default function BuilderPage() {
+  return (
+    <Suspense fallback={<Loading label="Loading builder…" />}>
+      <BuilderContent />
+    </Suspense>
   )
 }

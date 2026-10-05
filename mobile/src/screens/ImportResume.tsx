@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,6 +15,7 @@ import {
   SectionHeading,
   TextField,
 } from "../components";
+import { showDialog } from "../dialog";
 import { useNav } from "../navigation";
 import { colors, fontSize, radius, shadows, spacing } from "../theme";
 
@@ -64,7 +64,7 @@ export function ImportResumeScreen() {
         (parsed.contact.fullName ? `${parsed.contact.fullName}'s Resume` : "Imported Resume");
       const targetRole = parsed.experience[0]?.position ?? null;
 
-      Alert.alert(
+      showDialog(
         "Import Successful! 🎉",
         `Parsed ${parsed.experience.length} experience positions, ${parsed.education.length} degrees, and ${parsed.skills.length} skills.\n\nOpening builder now...`,
         [

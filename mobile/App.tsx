@@ -1,6 +1,7 @@
 import React from "react";
 
 import { NavigationProvider, Shell, useNav } from "./src/navigation";
+import { DialogHost } from "./src/dialog";
 import { DashboardScreen } from "./src/screens/Dashboard";
 import { BuilderScreen } from "./src/screens/Builder";
 import { PreviewScreen } from "./src/screens/Preview";
@@ -59,6 +60,7 @@ export default function App() {
     <NavigationProvider>
       <Shell>
         <ActiveScreen />
+        <DialogHost />
       </Shell>
     </NavigationProvider>
   );

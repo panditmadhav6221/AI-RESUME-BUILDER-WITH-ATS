@@ -17,6 +17,9 @@ RESUMES_TABLE = "resumes"
 RESUME_DATA_TABLE = "resume_data"
 ATS_SCANS_TABLE = "ats_scans"
 JOB_DESCRIPTIONS_TABLE = "job_descriptions"
+JOB_APPLICATIONS_TABLE = "job_applications"
+
+APPLICATION_STATUSES = ("wishlist", "applied", "interview", "offer", "rejected")
 
 
 def _new_id() -> str:
@@ -86,6 +89,32 @@ class JobDescription(Base):
     parsed_skills: Mapped[dict[str, Any]] = mapped_column(JSONColumn, nullable=False, default=dict)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class JobApplication(Base):
+    """A single tracked job application in the user's pipeline (Kanban board)."""
+
+    __tablename__ = JOB_APPLICATIONS_TABLE
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_id)
+    user_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    company_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    role_title: Mapped[str] = mapped_column(String(200), nullable=False)
+    location: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    salary: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="wishlist", index=True)
+    date_applied: Mapped[str] = mapped_column(String(20), nullable=False, default="")
+    # Optional link to a tailored resume variant. NULL when the resume is deleted.
+    resume_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey(f"{RESUMES_TABLE}.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
 
@@ -225,3 +254,81 @@ async def save_job_description(
     await session.commit()
     await session.refresh(jd)
     return jd
+
+
+# ---------------------------------------------------------------------------
+# Job application (tracker) repository helpers
+# ---------------------------------------------------------------------------
+
+
+def serialize_job_application(app: JobApplication, resume_title: str | None = None) -> dict:
+    return {
+        "id": app.id,
+        "companyName": app.company_name,
+        "roleTitle": app.role_title,
+        "location": app.location,
+        "salary": app.salary,
+        "status": app.status,
+        "dateApplied": app.date_applied,
+        "resumeId": app.resume_id,
+        "resumeTitle": resume_title,
+        "notes": app.notes,
+        "createdAt": app.created_at,
+        "updatedAt": app.updated_at,
+    }
+
+
+async def _resume_titles(session: AsyncSession, user_id: str, ids: set[str]) -> dict[str, str]:
+    if not ids:
+        return {}
+    result = await session.execute(
+        select(Resume.id, Resume.title).where(Resume.user_id == user_id, Resume.id.in_(ids))
+    )
+    return {row[0]: row[1] for row in result.all()}
+
+
+async def list_job_applications(session: AsyncSession, user_id: str) -> list[dict]:
+    result = await session.execute(
+        select(JobApplication).where(JobApplication.user_id == user_id).order_by(JobApplication.created_at.desc())
+    )
+    rows = list(result.scalars().all())
+    titles = await _resume_titles(session, user_id, {r.resume_id for r in rows if r.resume_id})
+    return [serialize_job_application(r, titles.get(r.resume_id or "")) for r in rows]
+
+
+async def get_job_application(session: AsyncSession, application_id: str, user_id: str) -> JobApplication | None:
+    result = await session.execute(
+        select(JobApplication).where(JobApplication.id == application_id, JobApplication.user_id == user_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def create_job_application(session: AsyncSession, user_id: str, values: dict) -> JobApplication:
+    app = JobApplication(user_id=user_id, **values)
+    session.add(app)
+    await session.commit()
+    await session.refresh(app)
+    return app
+
+
+async def update_job_application(
+    session: AsyncSession, application_id: str, user_id: str, patch: dict
+) -> JobApplication | None:
+    app = await get_job_application(session, application_id, user_id)
+    if app is None:
+        return None
+    for key, value in patch.items():
+        if value is not None:
+            setattr(app, key, value)
+    await session.commit()
+    await session.refresh(app)
+    return app
+
+
+async def delete_job_application(session: AsyncSession, application_id: str, user_id: str) -> bool:
+    app = await get_job_application(session, application_id, user_id)
+    if app is None:
+        return False
+    await session.execute(sa_delete(JobApplication).where(JobApplication.id == application_id))
+    await session.commit()
+    return True
