@@ -13,7 +13,6 @@ import {
   UserCheck,
   CalendarClock,
 } from 'lucide-react'
-import Navbar from '@/components/Navbar'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import ErrorBanner from '@/components/ui/ErrorBanner'
@@ -150,8 +149,7 @@ export default function TrackerPage() {
 
   return (
     <>
-      <Navbar />
-      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Job Pipeline</h1>
@@ -311,7 +309,7 @@ export default function TrackerPage() {
             ))}
           </div>
         )}
-      </main>
+      </div>
 
       <Modal
         open={modalOpen}

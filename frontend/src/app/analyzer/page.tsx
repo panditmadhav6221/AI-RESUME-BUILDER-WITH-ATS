@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Navbar from '@/components/Navbar'
 import AtsScoreCard from '@/components/AtsScoreCard'
 import type { ATSAnalysis } from '@/types'
 import { Upload, Loader2, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react'
@@ -42,9 +41,8 @@ export default function AnalyzerPage() {
 
   return (
     <>
-      <Navbar />
-      <main className="flex-1 max-w-5xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-zinc-900 mb-2">ATS Score Analyzer</h1>
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h1 className="text-3xl font-bold text-zinc-900 mb-2">ATS Score Analyzer</h1>
         <p className="text-zinc-600 mb-8">Upload or use your built resume to check its ATS compatibility.</p>
 
         <label className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl p-12 cursor-pointer hover:border-primary/50 transition-colors">
@@ -68,13 +66,13 @@ export default function AnalyzerPage() {
         )}
 
         {analysis && (
-          <div className="mt-8 max-w-2xl mx-auto">
+          <div className="mt-8 max-w-4xl mx-auto">
             <AtsScoreCard analysis={analysis} />
           </div>
         )}
 
         {resumeText && (
-          <div className="mt-8 max-w-2xl mx-auto border border-border rounded-xl overflow-hidden">
+          <div className="mt-8 max-w-4xl mx-auto border border-border rounded-xl overflow-hidden">
             <button
               onClick={() => setShowText(!showText)}
               className="w-full flex items-center justify-between px-4 py-3 bg-zinc-50 hover:bg-zinc-100 transition-colors"
@@ -95,7 +93,7 @@ export default function AnalyzerPage() {
             </div>
           </div>
         )}
-      </main>
+      </div>
     </>
   )
 }

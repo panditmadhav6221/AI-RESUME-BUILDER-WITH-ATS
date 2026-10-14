@@ -17,7 +17,6 @@ import {
   Wand2,
   X,
 } from 'lucide-react'
-import Navbar from '@/components/Navbar'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import ErrorBanner from '@/components/ui/ErrorBanner'
@@ -722,19 +721,13 @@ function BuilderContent() {
   }
 
   if (busy === 'load' && !hydrated) {
-    return (
-      <>
-        <Navbar />
-        <Loading label="Loading your resume…" />
-      </>
-    )
+    return <Loading label="Loading your resume…" />
   }
 
   return (
     <>
-      <Navbar />
       <div className="sticky top-16 z-30 border-b border-border bg-white/95 backdrop-blur">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 space-y-3">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <input
               value={draft.title}
@@ -768,7 +761,7 @@ function BuilderContent() {
         </div>
       </div>
 
-      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
         {error && <ErrorBanner message={error} />}
         {saved && <p className="text-[13px] font-medium text-emerald-600">{saved}</p>}
 
@@ -781,7 +774,7 @@ function BuilderContent() {
             {draft.id ? 'Update Resume' : 'Save Resume'}
           </Button>
         </div>
-      </main>
+      </div>
 
       <AiDiffModal change={pendingChange} loading={busy === 'summary' || busy === 'skills' || busy === 'bullets'} onClose={() => setPendingChange(null)} />
     </>

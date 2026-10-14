@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { CheckCircle2, FileUp, Sparkles, Zap } from 'lucide-react'
-import Navbar from '@/components/Navbar'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import ErrorBanner from '@/components/ui/ErrorBanner'
@@ -98,10 +97,9 @@ export default function ImportPage() {
 
   return (
     <>
-      <Navbar />
-      <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Import Resume</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Import Resume</h1>
           <p className="text-zinc-600 mt-1">AI auto-extract &amp; fill</p>
         </div>
 
@@ -191,7 +189,7 @@ export default function ImportPage() {
           <Sparkles className="w-3.5 h-3.5" />
           Nothing is saved until you hit Save in the builder.
         </p>
-      </main>
+      </div>
     </>
   )
 }

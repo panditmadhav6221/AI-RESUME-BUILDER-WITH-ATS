@@ -15,7 +15,6 @@ import {
   Target,
   TriangleAlert,
 } from 'lucide-react'
-import Navbar from '@/components/Navbar'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import ErrorBanner from '@/components/ui/ErrorBanner'
@@ -131,14 +130,13 @@ function PreviewContent() {
   if (!data) {
     return (
       <>
-        <Navbar />
         {error ? (
-          <main className="flex-1 max-w-2xl mx-auto px-4 py-12 space-y-4">
+          <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-4">
             <ErrorBanner message={error} />
             <Link href="/builder" className="text-primary font-semibold text-sm">
               ← Back to Builder
             </Link>
-          </main>
+          </div>
         ) : (
           <Loading label="Preparing preview…" />
         )}
@@ -152,11 +150,10 @@ function PreviewContent() {
 
   return (
     <>
-      <Navbar />
-      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Executive Preview</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Executive Preview</h1>
             <p className="text-zinc-600 mt-1">ATS scan &amp; A4 layout</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -346,7 +343,7 @@ function PreviewContent() {
             </Card>
           </div>
         </div>
-      </main>
+      </div>
     </>
   )
 }

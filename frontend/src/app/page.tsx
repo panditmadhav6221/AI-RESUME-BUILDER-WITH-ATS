@@ -22,7 +22,6 @@ import {
   Gauge,
   Check,
 } from 'lucide-react'
-import Navbar from '@/components/Navbar'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import ErrorBanner from '@/components/ui/ErrorBanner'
@@ -107,8 +106,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <Navbar />
-      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         <section className="relative overflow-hidden rounded-3xl bg-zinc-900 text-white px-6 sm:px-10 py-10">
           <div className="absolute -top-20 -right-16 w-72 h-72 rounded-full bg-primary/30 blur-3xl" aria-hidden />
           <div className="relative">
@@ -336,7 +334,7 @@ export default function DashboardPage() {
             </div>
           )}
         </section>
-      </main>
+      </div>
 
       <Modal
         open={!!pendingDelete}
