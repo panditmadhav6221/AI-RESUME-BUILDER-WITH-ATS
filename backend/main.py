@@ -24,7 +24,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="AI Resume Builder API", version="2.0.0", lifespan=lifespan)
 
-# Allow the web frontend, Expo development clients, and the EAS-built app scheme.
+# Allow the web frontend plus any origins configured via CORS_ALLOWED_ORIGINS.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -32,10 +32,7 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         *[o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()],
     ],
-    allow_origin_regex=(
-        r"^(exp://|(?:http://|https://)(?:localhost|127\.0\.0\.1)(?::\d+)?$|"
-        r"com\.resumebuilder\.app://.*$)"
-    ),
+    allow_origin_regex=r"^(?:http://|https://)(?:localhost|127\.0\.0\.1)(?::\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

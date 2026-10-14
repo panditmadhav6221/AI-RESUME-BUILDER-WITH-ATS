@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -13,8 +13,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Resume Builder",
-  description: "Build ATS-optimized resumes with AI-powered content assistance",
+  title: {
+    default: "AI Resume Builder",
+    template: "%s | AI Resume Builder",
+  },
+  description:
+    "Build ATS-optimized resumes with AI-powered content assistance. Score your resume, match it to any job description, and export to PDF or DOCX.",
+  applicationName: "AI Resume Builder",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#2563eb",
 };
 
 export default function RootLayout({
