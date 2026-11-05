@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, useSyncExternalStore } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { FileText, Gauge, Plus, Sparkles, Target, Wand2 } from 'lucide-react'
@@ -21,18 +21,6 @@ import { resumeToPlainText } from '@/lib/resume-text'
 import { MATCHER_TEXT_KEY } from '@/lib/storage-keys'
 import type { JDAnalysis } from '@/types'
 
-const subscribeToStorage = (onChange: () => void) => {
-  window.addEventListener('storage', onChange)
-  return () => window.removeEventListener('storage', onChange)
-}
-
-const readHandedText = () => {
-  const handed = sessionStorage.getItem(MATCHER_TEXT_KEY)
-  if (!handed) return ''
-  sessionStorage.removeItem(MATCHER_TEXT_KEY)
-  return handed
-}
-
 function MatcherContent() {
   const params = useSearchParams()
   const resume = useActiveResume(params.get('id'))
@@ -43,7 +31,15 @@ function MatcherContent() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
-  const importedText = useSyncExternalStore(subscribeToStorage, readHandedText, () => '')
+  const [importedText, setImportedText] = useState('')
+
+  useEffect(() => {
+    const handed = sessionStorage.getItem(MATCHER_TEXT_KEY)
+    if (handed) {
+      setImportedText(handed)
+      sessionStorage.removeItem(MATCHER_TEXT_KEY)
+    }
+  }, [])
 
   const resumeText = resume.data ? resumeToPlainText(resume.data) : importedText
 

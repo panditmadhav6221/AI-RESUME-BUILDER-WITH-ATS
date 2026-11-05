@@ -17,13 +17,40 @@ SECTION_HEADINGS = [
 ]
 
 
-def parse_resume_file(file_bytes: bytes, mime_type: str) -> tuple[str, dict[str, str], dict]:
-    text = ""
+def _detect_file_kind(file_bytes: bytes, mime_type: str, filename: str) -> str | None:
+    """Detect PDF/DOCX from the filename, MIME type, or file signature.
+
+    Browsers are inconsistent about MIME types (Windows often sends
+    "application/octet-stream" for DOCX), so we never rely on it alone.
+    """
+    name = (filename or "").lower()
+    mime = (mime_type or "").lower()
+
+    if name.endswith(".pdf") or "pdf" in mime or b"%PDF" in file_bytes[:1024]:
+        return "pdf"
+    if name.endswith(".docx") or "wordprocessingml" in mime or file_bytes[:2] == b"PK":
+        return "docx"
+    return None
+
+
+def parse_resume_file(
+    file_bytes: bytes,
+    mime_type: str = "",
+    filename: str = "",
+) -> tuple[str, dict[str, str], dict]:
+    kind = _detect_file_kind(file_bytes, mime_type, filename)
     layout: dict = {"hasTables": False, "singleColumn": None}
-    if "pdf" in mime_type:
-        text, layout = _parse_pdf(file_bytes)
-    elif "wordprocessingml" in mime_type or "docx" in mime_type:
-        text = _parse_docx(file_bytes)
+
+    if kind == "pdf":
+        try:
+            text, layout = _parse_pdf(file_bytes)
+        except Exception as exc:
+            raise ValueError("Could not read this PDF file. Please make sure it is a valid PDF.") from exc
+    elif kind == "docx":
+        try:
+            text = _parse_docx(file_bytes)
+        except Exception as exc:
+            raise ValueError("Could not read this DOCX file. Please make sure it is a valid Word document.") from exc
     else:
         raise ValueError("Unsupported file type. Please upload a PDF or DOCX file.")
 

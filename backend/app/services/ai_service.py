@@ -11,9 +11,17 @@ import asyncio
 import json
 import os
 import re
+from pathlib import Path
 from typing import Any, TypeVar
 
+from dotenv import load_dotenv
+
+# Must run before the client is created below. main.py loads .env only after
+# importing this module, so relying on that would leave the API key empty.
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+
 from openai import (
+    APIConnectionError,
     APITimeoutError,
     APIStatusError,
     AsyncOpenAI,
@@ -51,8 +59,8 @@ client = AsyncOpenAI(
     },
 )
 
-PRIMARY_MODEL = os.getenv("OPENROUTER_MODEL", "deepseek/deepseek-chat-v3-0324:free")
-DEFAULT_FALLBACKS = "meta-llama/llama-3.3-70b-instruct:free,google/gemini-2.0-flash-lite-preview-02-05:free"
+PRIMARY_MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/free")
+DEFAULT_FALLBACKS = "dots-studio/dots-3-note-preview:free,recursive/flint-v1.0:free"
 raw_fallbacks = os.getenv("OPENROUTER_MODEL_FALLBACKS", DEFAULT_FALLBACKS)
 FALLBACK_MODELS = [m.strip() for m in raw_fallbacks.split(",") if m.strip()]
 MODELS = [PRIMARY_MODEL, *[m for m in FALLBACK_MODELS if m != PRIMARY_MODEL]]
@@ -119,19 +127,20 @@ async def _run_json(system: str, prompt: str, model: type[T]) -> tuple[T, str]:
             return model.model_validate(data), m
         except AuthenticationError:
             raise
-        except (RateLimitError, APITimeoutError, APIStatusError) as e:
+        except Exception as e:  # noqa: BLE001 - any model failure should fall back
             errors.append(f"{m}: {e}")
+            # Fall back to plain-text retry on the same model before switching.
+            if isinstance(e, (json.JSONDecodeError, ValidationError, ValueError)):
+                try:
+                    text = await _per_model_completion(m, system, prompt, max_tokens=4096, json_mode=False)
+                    data = _extract_json(text)
+                    return model.model_validate(data), m
+                except AuthenticationError:
+                    raise
+                except Exception as retry_error:  # noqa: BLE001
+                    errors.append(f"{m} (retry): {retry_error}")
             if i < len(MODELS) - 1:
                 await asyncio.sleep(min(0.5 * (i + 1), 3))
-        except (json.JSONDecodeError, ValidationError, ValueError) as e:
-            errors.append(f"{m}: schema/parse error ({e})")
-            # Fall back to plain-text retry on the same model before switching.
-            try:
-                text = await _per_model_completion(m, system, prompt, max_tokens=4096, json_mode=False)
-                data = _extract_json(text)
-                return model.model_validate(data), m
-            except (json.JSONDecodeError, ValidationError, ValueError):
-                pass
     raise RuntimeError("AI returned no valid structured output: " + "; ".join(errors[:3]))
 
 

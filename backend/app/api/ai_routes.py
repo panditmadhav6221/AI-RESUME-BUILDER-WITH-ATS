@@ -1,6 +1,6 @@
 import json
 from fastapi import APIRouter, Depends, HTTPException
-from openai import AuthenticationError, RateLimitError, APIStatusError
+from openai import APIConnectionError, AuthenticationError, RateLimitError, APIStatusError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
@@ -43,6 +43,11 @@ def _ai_error(e: Exception) -> HTTPException:
                 detail="No credits on your OpenRouter account. Free models work with $0 balance, or add credits at https://openrouter.ai/settings/credits",
             )
         return HTTPException(status_code=429, detail="AI rate limit reached. Please try again in a moment.")
+    if isinstance(e, APIConnectionError):
+        return HTTPException(
+            status_code=503,
+            detail="Could not reach the AI provider. Check your internet connection and try again.",
+        )
     if isinstance(e, APIStatusError):
         return HTTPException(status_code=e.status_code, detail=f"AI service error: {e.message}")
     if isinstance(e, json.JSONDecodeError):

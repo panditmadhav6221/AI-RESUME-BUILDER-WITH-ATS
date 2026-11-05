@@ -222,7 +222,12 @@ export const applicationsApi = {
 export async function parseResumeFile(file: File) {
   const form = new FormData()
   form.append('file', file)
-  const res = await fetch(`${API}/resume/parse`, { method: 'POST', body: form })
+  let res: Response
+  try {
+    res = await fetch(`${API}/resume/parse`, { method: 'POST', body: form })
+  } catch {
+    throw new Error(`Could not reach the backend at ${API_BASE}. Is the API server running?`)
+  }
   if (!res.ok) {
     let detail = `HTTP ${res.status}`
     try {

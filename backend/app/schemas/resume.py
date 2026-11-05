@@ -1,10 +1,40 @@
 from datetime import datetime
-from typing import Literal
+from typing import Literal, get_origin
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
-class ContactInfo(BaseModel):
+class CoerceModel(BaseModel):
+    """Tolerates the small shape differences free LLMs often produce.
+
+    Converts numeric values to strings, and null/object values into the
+    empty string or list the schema expects instead of failing validation.
+    """
+
+    model_config = ConfigDict(coerce_numbers_to_str=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_values(cls, data):
+        if not isinstance(data, dict):
+            return data
+        out = dict(data)
+        for key, value in out.items():
+            field = cls.model_fields.get(key)
+            if field is None:
+                continue
+            annotation = field.annotation
+            if get_origin(annotation) is list:
+                if value is None:
+                    out[key] = []
+                elif isinstance(value, (str, dict)):
+                    out[key] = [value] if value else []
+            elif annotation is str and value is None:
+                out[key] = ""
+        return out
+
+
+class ContactInfo(CoerceModel):
     fullName: str = ""
     email: str = ""
     phone: str = ""
@@ -13,7 +43,7 @@ class ContactInfo(BaseModel):
     website: str | None = None
 
 
-class WorkExperience(BaseModel):
+class WorkExperience(CoerceModel):
     id: str = ""
     company: str = ""
     position: str = ""
@@ -24,7 +54,7 @@ class WorkExperience(BaseModel):
     bullets: list[str] = []
 
 
-class Education(BaseModel):
+class Education(CoerceModel):
     id: str = ""
     institution: str = ""
     degree: str = ""
@@ -34,12 +64,12 @@ class Education(BaseModel):
     gpa: str | None = None
 
 
-class Skill(BaseModel):
+class Skill(CoerceModel):
     id: str = ""
     name: str = ""
 
 
-class Project(BaseModel):
+class Project(CoerceModel):
     id: str = ""
     name: str = ""
     description: str = ""
@@ -47,7 +77,7 @@ class Project(BaseModel):
     technologies: list[str] = []
 
 
-class Certification(BaseModel):
+class Certification(CoerceModel):
     id: str = ""
     name: str = ""
     issuer: str = ""
@@ -55,7 +85,7 @@ class Certification(BaseModel):
     url: str | None = None
 
 
-class ResumeData(BaseModel):
+class ResumeData(CoerceModel):
     contact: ContactInfo = ContactInfo()
     summary: str = ""
     experience: list[WorkExperience] = []

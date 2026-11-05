@@ -5,14 +5,20 @@ from app.services.ats_scorer import analyze_ats_score_from_text
 router = APIRouter(prefix="/api/resume", tags=["resume"])
 
 
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+
+
 @router.post("/parse")
 async def parse_resume(file: UploadFile = File(...)):
-    if not file.filename or not (file.filename.endswith(".pdf") or file.filename.endswith(".docx")):
+    filename = (file.filename or "").lower()
+    if not (filename.endswith(".pdf") or filename.endswith(".docx")):
         raise HTTPException(status_code=400, detail="Unsupported file type. Please upload a PDF or DOCX file.")
 
     contents = await file.read()
+    if len(contents) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File is too large. Please upload a file under 10MB.")
     try:
-        text, sections, layout = parse_resume_file(contents, file.content_type or "")
+        text, sections, layout = parse_resume_file(contents, file.content_type or "", file.filename or "")
         detected = detect_sections(text)
         analysis = analyze_ats_score_from_text(
             text, detected,

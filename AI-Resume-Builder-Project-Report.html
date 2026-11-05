@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI Resume Builder with ATS Optimization - Project Report</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 16mm 18mm 16mm;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+    font-size: 10.7pt;
+    line-height: 1.5;
+    color: #1f2430;
+    margin: 0;
+  }
+  h1, h2, h3, h4 { color: #14315c; line-height: 1.25; }
+  h1 {
+    font-size: 19pt;
+    margin: 0 0 12px 0;
+    padding-bottom: 6px;
+    border-bottom: 2.5px solid #2563eb;
+    page-break-before: always;
+  }
+  h1.first { page-break-before: avoid; }
+  h2 { font-size: 13.5pt; margin: 20px 0 8px; }
+  h3 { font-size: 11.5pt; margin: 15px 0 6px; }
+  p { margin: 0 0 9px; text-align: justify; }
+  ul, ol { margin: 4px 0 10px 20px; padding: 0; }
+  li { margin-bottom: 4px; }
+  code {
+    font-family: Consolas, "Courier New", monospace;
+    background: #eef2f7;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 9.5pt;
+    color: #123a6b;
+  }
+  pre {
+    font-family: Consolas, "Courier New", monospace;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 9pt;
+    line-height: 1.45;
+    overflow-x: auto;
+    white-space: pre-wrap;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 14px;
+    font-size: 9.4pt;
+  }
+  th, td {
+    border: 1px solid #c7d2e0;
+    padding: 6px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #e8eef7; color: #14315c; }
+  tr:nth-child(even) td { background: #f7f9fc; }
+  .note {
+    background: #eef6ff;
+    border-left: 4px solid #2563eb;
+    padding: 10px 14px;
+    margin: 10px 0 14px;
+    border-radius: 0 6px 6px 0;
+  }
+  .warn {
+    background: #fff7ed;
+    border-left: 4px solid #ea580c;
+    padding: 10px 14px;
+    margin: 10px 0 14px;
+    border-radius: 0 6px 6px 0;
+  }
+  .cover {
+    text-align: center;
+    padding-top: 70px;
+    page-break-after: always;
+  }
+  .cover .badge {
+    display: inline-block;
+    background: #2563eb;
+    color: #fff;
+    font-size: 10pt;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 6px 18px;
+    border-radius: 30px;
+    margin-bottom: 28px;
+  }
+  .cover h1 {
+    font-size: 30pt;
+    border: none;
+    page-break-before: avoid;
+    color: #0f172a;
+    margin: 0 0 6px;
+    padding: 0;
+  }
+  .cover .sub {
+    font-size: 14pt;
+    color: #2563eb;
+    font-weight: 600;
+    margin-bottom: 40px;
+  }
+  .cover .divider {
+    width: 90px;
+    height: 4px;
+    background: #2563eb;
+    margin: 0 auto 40px;
+    border-radius: 4px;
+  }
+  .cover .meta {
+    font-size: 11pt;
+    color: #334155;
+    line-height: 1.9;
+    margin-bottom: 44px;
+  }
+  .cover .meta strong { color: #0f172a; }
+  .cover .box {
+    display: inline-block;
+    text-align: left;
+    border: 1px solid #c7d2e0;
+    border-radius: 12px;
+    padding: 18px 26px;
+    background: #f8fafc;
+    font-size: 10.2pt;
+    line-height: 1.8;
+  }
+  .toc { page-break-after: always; }
+  .toc h1 { page-break-before: avoid; }
+  .toc ol { list-style: none; margin-left: 0; font-size: 11pt; }
+  .toc > ol > li { margin: 7px 0; font-weight: 600; color: #14315c; }
+  .toc ol ol { list-style: none; margin: 3px 0 8px 18px; font-weight: 400; }
+  .toc ol ol li { margin: 2px 0; color: #334155; }
+  .small { font-size: 9pt; color: #64748b; }
+  .center { text-align: center; }
+  .kpi-row { display: flex; gap: 10px; margin: 10px 0 16px; }
+  .kpi {
+    flex: 1;
+    border: 1px solid #c7d2e0;
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    background: #f8fafc;
+  }
+  .kpi .num { font-size: 18pt; font-weight: 800; color: #2563eb; }
+  .kpi .lbl { font-size: 8.6pt; color: #475569; text-transform: uppercase; letter-spacing: .6px; }
+  .pagebreak { page-break-before: always; }
+  .avoid-break { page-break-inside: avoid; }
+  figure { margin: 12px 0 16px; page-break-inside: avoid; }
+  figcaption { text-align: center; font-size: 9pt; color: #64748b; margin-top: 6px; }
+  .arch {
+    border: 1.5px solid #94a3b8;
+    border-radius: 10px;
+    padding: 12px;
+    background: #f8fafc;
+  }
+  .layer {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 9px 12px;
+    margin: 6px 0;
+    background: #fff;
+  }
+  .layer b { color: #14315c; }
+  .arrow { text-align: center; color: #2563eb; font-weight: 700; font-size: 14pt; margin: 2px 0; }
+  .tag {
+    display: inline-block;
+    background: #e0ecff;
+    color: #1d4ed8;
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 8.7pt;
+    font-weight: 600;
+    margin: 2px 3px 2px 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= COVER PAGE ================= -->
+<div class="cover">
+  <span class="badge">PROJECT REPORT</span>
+  <h1>AI Resume Builder<br>with ATS Optimization</h1>
+  <p class="sub">An AI-Powered Full-Stack Web Application for Building, Scoring and Tailoring ATS-Friendly Resumes</p>
+  <div class="divider"></div>
+  <div class="meta">
+    <strong>Submitted by:</strong> [Your Name] &nbsp;|&nbsp; [Roll Number]<br>
+    <strong>Course:</strong> [Course / Branch]<br>
+    <strong>Department:</strong> [Department Name]<br>
+    <strong>College:</strong> [College / Institute Name]<br>
+    <strong>Guide:</strong> [Faculty / Project Guide Name]<br>
+    <strong>Academic Year:</strong> [2025 – 2026]
+  </div>
+  <div class="box">
+    <strong>Technology Stack</strong><br>
+    Frontend: Next.js 16 + React 19 + TypeScript + Tailwind CSS<br>
+    Backend: Python FastAPI + SQLAlchemy (async) + Pydantic v2<br>
+    Database: Supabase PostgreSQL / local SQLite fallback<br>
+    AI Provider: OpenRouter (free LLMs) via OpenAI-compatible API<br>
+    Export: WeasyPrint / Playwright (PDF) + python-docx (DOCX)
+  </div>
+</div>
+
+<!-- ================= ABSTRACT ================= -->
+<h1 class="first">Abstract</h1>
+<p>
+Many job seekers, especially freshers and students, are rejected before a human recruiter
+ever reads their resume. The reason is the <strong>Applicant Tracking System (ATS)</strong> —
+software that automatically parses, filters and ranks resumes before they reach a recruiter.
+Resumes that use complex tables, multi-column layouts, non-standard headings, weak action
+verbs or missing keywords are silently discarded, no matter how qualified the candidate is.
+</p>
+<p>
+This project, <strong>AI Resume Builder with ATS Optimization</strong>, is a full-stack web
+application that helps a user create a resume which is readable by ATS software and highly
+targeted to a specific job. It provides a guided resume builder with a live preview, a
+rule-based ATS score analyzer (0–100) with itemized fixes, a job-description (JD) matcher
+that extracts required skills using an AI model and semantically matches them against the
+resume, and an AI career toolkit (summary generation, bullet rewriting, cover letters,
+interview preparation, recruiter audit and cold-outreach messages). Finally, the resume can
+be exported as a clean ATS-friendly <strong>PDF</strong>, <strong>DOCX</strong>, plain text or HTML.
+</p>
+<p>
+The application follows a three-tier architecture: a Next.js/React frontend (presentation),
+a FastAPI backend (business logic and REST API), and a PostgreSQL/SQLite database
+(persistence). AI features are integrated through OpenRouter's free language models with
+structured JSON outputs, a fallback-model chain, and anti-hallucination guardrails so the AI
+cannot invent qualifications, companies or metrics that the user never provided.
+</p>
+
+<!-- ================= TOC ================= -->
+<div class="toc">
+  <h1>Table of Contents</h1>
+  <ol>
+    <li>1. Introduction
+      <ol>
+        <li>1.1 Overview</li>
+        <li>1.2 Problem Statement</li>
+        <li>1.3 Objectives</li>
+        <li>1.4 Scope of the Project</li>
+      </ol>
+    </li>
+    <li>2. Literature Survey and Background
+      <ol>
+        <li>2.1 What is an ATS?</li>
+        <li>2.2 Why Resumes Get Rejected</li>
+        <li>2.3 Existing Systems and Their Limitations</li>
+        <li>2.4 Proposed Solution</li>
+      </ol>
+    </li>
+    <li>3. System Analysis
+      <ol>
+        <li>3.1 Existing System</li>
+        <li>3.2 Proposed System</li>
+        <li>3.3 Feasibility Study</li>
+        <li>3.4 Functional Requirements</li>
+        <li>3.5 Non-Functional Requirements</li>
+        <li>3.6 Hardware and Software Requirements</li>
+      </ol>
+    </li>
+    <li>4. System Design
+      <ol>
+        <li>4.1 System Architecture</li>
+        <li>4.2 Module Design</li>
+        <li>4.3 Data Flow</li>
+        <li>4.4 Database Design</li>
+        <li>4.5 API Design</li>
+        <li>4.6 Frontend Page Map</li>
+        <li>4.7 AI Pipeline Design</li>
+        <li>4.8 ATS Scoring Algorithm</li>
+        <li>4.9 Security and AI Guardrails</li>
+      </ol>
+    </li>
+    <li>5. Implementation
+      <ol>
+        <li>5.1 Project Structure</li>
+        <li>5.2 Backend Implementation</li>
+        <li>5.3 Frontend Implementation</li>
+        <li>5.4 Database Implementation</li>
+        <li>5.5 AI Service Implementation</li>
+        <li>5.6 Resume Parsing Implementation</li>
+        <li>5.7 Export Implementation</li>
+      </ol>
+    </li>
+    <li>6. Testing
+      <ol>
+        <li>6.1 Testing Strategy</li>
+        <li>6.2 Test Cases</li>
+        <li>6.3 Automated Tests</li>
+      </ol>
+    </li>
+    <li>7. Results and Discussion
+      <ol>
+        <li>7.1 Features Achieved</li>
+        <li>7.2 Advantages</li>
+        <li>7.3 Limitations</li>
+      </ol>
+    </li>
+    <li>8. Conclusion and Future Scope</li>
+    <li>References</li>
+    <li>Appendix A: API Endpoints</li>
+    <li>Appendix B: Environment Variables</li>
+    <li>Appendix C: How to Run the Project</li>
+  </ol>
+</div>
+
+<!-- ================= CHAPTER 1 ================= -->
+<h1>1. Introduction</h1>
+
+<h2>1.1 Overview</h2>
+<p>
+The <strong>AI Resume Builder with ATS Optimization</strong> is a web application that combines
+a structured resume editor, a deterministic ATS scoring engine, an AI writing assistant and a
+job-application tracker into one platform. The user fills in their details (contact, summary,
+experience, education, skills, projects, certifications) through a tabbed builder, sees a live
+preview, receives an ATS compatibility score with concrete fixes, tailors the resume to a
+pasted job description, and downloads the final resume in PDF or DOCX format.
+</p>
+<p>
+The system is designed around one central idea: <em>a resume must first pass the machine, then
+impress the human</em>. Every generated and exported artifact therefore uses a single-column
+layout, standard section headings, web-safe fonts, selectable text and standard date formats.
+</p>
+
+<h2>1.2 Problem Statement</h2>
+<p>
+Most candidates write resumes manually in word processors that encourage tables, graphics,
+icons, text boxes and multi-column layouts. These look attractive to humans but are poorly
+parsed by ATS software. In addition, candidates rarely know which keywords a specific job
+description requires, and they often use weak phrases such as "responsible for" or
+"worked on" instead of measurable, action-oriented achievements. There is no affordable,
+easy-to-use tool that simultaneously:
+</p>
+<ul>
+  <li>builds a structured, ATS-safe resume,</li>
+  <li>scores it objectively and explains every deduction,</li>
+  <li>matches it against a real job description, and</li>
+  <li>helps generate targeted content without fabricating facts.</li>
+</ul>
+
+<h2>1.3 Objectives</h2>
+<ol>
+  <li>To provide a guided resume builder with a live preview and three ATS-safe templates.</li>
+  <li>To implement a rule-based ATS scoring engine (0–100) with category-wise issues and fixes.</li>
+  <li>To parse uploaded PDF/DOCX resumes and analyze their layout (tables, columns, headings).</li>
+  <li>To integrate an LLM (through OpenRouter) for summary generation, bullet improvement, skill suggestions, JD analysis, cover letters, interview preparation, recruiter audit and outreach messages.</li>
+  <li>To semantically match job-description keywords with resume skills using a synonym/alias engine.</li>
+  <li>To persist resumes, ATS scans, job descriptions and job applications in a database.</li>
+  <li>To export resumes as ATS-clean PDF, DOCX, plain text and HTML.</li>
+  <li>To protect users from AI hallucination through structured outputs and guardrails.</li>
+</ol>
+
+<h2>1.4 Scope of the Project</h2>
+<p>
+The current scope covers a single user working anonymously in a browser. There is no
+authentication; a stable browser-generated <code>userId</code> scopes every resume and
+application. The system supports PDF and DOCX resume parsing, three export formats (PDF,
+DOCX, text/HTML), and ten front-end pages covering the complete job-search workflow. The AI
+features depend on an external OpenRouter API key; when the AI is unavailable, the system
+degrades gracefully for bullet improvement and returns clear error messages for other
+features. The database defaults to a local SQLite file but can be pointed at Supabase
+PostgreSQL for production.
+</p>
+
+<!-- ================= CHAPTER 2 ================= -->
+<h1>2. Literature Survey and Background</h1>
+
+<h2>2.1 What is an ATS?</h2>
+<p>
+An Applicant Tracking System (ATS) is software used by employers to receive, store, search
+and rank job applications. When a candidate uploads a resume, the ATS extracts the text,
+segments it into sections (contact, summary, experience, education, skills), and indexes
+the keywords. Recruiters then search and filter candidates by keywords, job titles and
+years of experience. If the ATS fails to extract the text correctly, the candidate becomes
+invisible regardless of their actual qualifications.
+</p>
+
+<h2>2.2 Why Resumes Get Rejected</h2>
+<table>
+  <tr><th>Problem</th><th>Effect on ATS</th></tr>
+  <tr><td>Tables and text boxes</td><td>Content is skipped or read out of order</td></tr>
+  <tr><td>Multi-column layouts</td><td>Columns get merged into unreadable text</td></tr>
+  <tr><td>Images/icons with text</td><td>Text cannot be extracted at all</td></tr>
+  <tr><td>Non-standard headings (e.g. "My Journey")</td><td>Section detection fails</td></tr>
+  <tr><td>Missing keywords from the JD</td><td>Resume is ranked below keyword-rich resumes</td></tr>
+  <tr><td>Weak phrases ("responsible for")</td><td>Lower relevance/quality score</td></tr>
+  <tr><td>Non-standard dates (e.g. "Summer 22")</td><td>Experience timelines are misread</td></tr>
+  <tr><td>No quantified results</td><td>Lower ranking compared with metric-driven bullets</td></tr>
+</table>
+
+<h2>2.3 Existing Systems and Their Limitations</h2>
+<p>
+Commercial resume builders (e.g. generic online editors) provide templates but usually do not
+explain ATS scoring, do not match against a specific job description, and lock advanced
+features behind subscriptions. Manual word-processor templates require design knowledge and
+often break ATS parsing. Standalone ATS-checker websites return a score but do not help the
+user fix content or tailor it to a job. Most importantly, many AI resume tools freely invent
+experience and metrics, which is unethical and easily caught in interviews. This project
+addresses all of these gaps in one free, self-hostable application.
+</p>
+
+<h2>2.4 Proposed Solution</h2>
+<p>
+A single full-stack application that (a) enforces ATS-safe structure by design, (b) scores the
+resume deterministically so the result is explainable, (c) uses an LLM only for language
+generation with strict structured-output validation and anti-hallucination checks, and
+(d) manages the complete application pipeline from resume creation to job tracking.
+</p>
+
+<!-- ================= CHAPTER 3 ================= -->
+<h1>3. System Analysis</h1>
+
+<h2>3.1 Existing System</h2>
+<p>
+In the existing manual process, a candidate creates a resume in a word processor, exports it
+to PDF, and applies to jobs. The candidate has no reliable way to know whether the ATS parsed
+the file correctly, which keywords are missing, or why an application was rejected. Feedback
+is rare, and improvements are guesswork.
+</p>
+
+<h2>3.2 Proposed System</h2>
+<p>
+The proposed system replaces guesswork with measurable feedback. The user builds a structured
+resume (stored as JSON), receives an explainable ATS score, sees matched and missing JD
+keywords, uses AI to improve wording without inventing facts, and exports a clean, parser-
+friendly document. A tracker records every application stage.
+</p>
+<div class="note">
+  <strong>Key design principle:</strong> the resume is stored as structured data first and
+  rendered to a document second. This guarantees that all exports are consistent, and it
+  allows both the scoring engine and the AI to operate on well-defined fields instead of
+  free text.
+</div>
+
+<h2>3.3 Feasibility Study</h2>
+<h3>Technical Feasibility</h3>
+<p>
+All chosen technologies are open-source and mature. Next.js and React provide a modern,
+component-based UI. FastAPI offers high-performance async REST APIs with automatic
+OpenAPI documentation. SQLAlchemy's async engine supports both SQLite and PostgreSQL without
+code changes. OpenRouter exposes free LLMs through an OpenAI-compatible interface. PDF and
+DOCX generation use well-established Python libraries. The project therefore requires no
+proprietary or paid component for local development.
+</p>
+<h3>Economic Feasibility</h3>
+<p>
+The stack is free. AI usage can be limited to free models (suffix <code>:free</code>) on
+OpenRouter. SQLite requires no server. For production, Supabase offers a free Postgres tier.
+The only optional cost is a hosting plan for the backend, which can run on a small container.
+</p>
+<h3>Operational Feasibility</h3>
+<p>
+The UI is a standard web application with a guided tabbed builder, so no training is required.
+The API is stateless and horizontally scalable. The anonymous user-id design removes the
+friction of account creation for a demo or academic deployment.
+</p>
+
+<h2>3.4 Functional Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement</th></tr>
+  <tr><td>FR-01</td><td>The system shall allow a user to create, edit, save, load, duplicate and delete resumes.</td></tr>
+  <tr><td>FR-02</td><td>The builder shall capture contact, summary, experience, education, skills, projects and certifications.</td></tr>
+  <tr><td>FR-03</td><td>The system shall show a live resume preview and three templates (modern, classic, minimal).</td></tr>
+  <tr><td>FR-04</td><td>The system shall compute an ATS score (0–100) with issues, severity, category and suggested fixes.</td></tr>
+  <tr><td>FR-05</td><td>The system shall parse an uploaded PDF/DOCX, extract text and sections, and detect tables and multi-column layout.</td></tr>
+  <tr><td>FR-06</td><td>The system shall analyze a job description and list matched and missing skills with a match percentage.</td></tr>
+  <tr><td>FR-07</td><td>The system shall generate a professional summary, improve bullets, and suggest skills using AI.</td></tr>
+  <tr><td>FR-08</td><td>The system shall tailor the resume to a job description without inventing facts.</td></tr>
+  <tr><td>FR-09</td><td>The system shall generate cover letters, interview questions with STAR answers, recruiter audits and outreach messages.</td></tr>
+  <tr><td>FR-10</td><td>The system shall parse raw resume/LinkedIn text into structured fields.</td></tr>
+  <tr><td>FR-11</td><td>The system shall export the resume as PDF, DOCX, plain text and HTML.</td></tr>
+  <tr><td>FR-12</td><td>The system shall track job applications across five stages: wishlist, applied, interview, offer, rejected.</td></tr>
+  <tr><td>FR-13</td><td>The system shall persist ATS scans and job descriptions for later analysis.</td></tr>
+</table>
+
+<h2>3.5 Non-Functional Requirements</h2>
+<ul>
+  <li><strong>Performance:</strong> deterministic ATS scoring is instant; AI calls use a 60-second timeout with model fallback.</li>
+  <li><strong>Reliability:</strong> if the database is unavailable, the health endpoint reports "degraded"; ATS persistence failures never block returning a score.</li>
+  <li><strong>Usability:</strong> responsive Tailwind UI, live preview, loading states, error banners and confirmation modals.</li>
+  <li><strong>Security:</strong> every resume and application is scoped by the caller's <code>userId</code>; secrets are read from environment variables.</li>
+  <li><strong>Portability:</strong> runs on Windows/Linux with SQLite, or with Supabase PostgreSQL in production.</li>
+  <li><strong>Maintainability:</strong> layered backend (API → services → models), typed frontend, Pydantic schemas, and automated tests.</li>
+</ul>
+
+<h2>3.6 Hardware and Software Requirements</h2>
+<table>
+  <tr><th>Type</th><th>Requirement</th></tr>
+  <tr><td>Processor</td><td>Any modern dual-core CPU (quad-core recommended for PDF rendering)</td></tr>
+  <tr><td>RAM</td><td>4 GB minimum, 8 GB recommended</td></tr>
+  <tr><td>Disk</td><td>~500 MB for Node modules, Python packages and project files</td></tr>
+  <tr><td>Operating System</td><td>Windows 10/11, Linux or macOS</td></tr>
+  <tr><td>Runtime</td><td>Python 3.11+ and Node.js 20+</td></tr>
+  <tr><td>Browser</td><td>Chrome, Edge, Firefox or Safari (latest)</td></tr>
+  <tr><td>Optional</td><td>Docker Desktop (for local PostgreSQL + pgAdmin)</td></tr>
+  <tr><td>Network</td><td>Internet access for OpenRouter AI calls</td></tr>
+</table>
+
+<!-- ================= CHAPTER 4 ================= -->
+<h1>4. System Design</h1>
+
+<h2>4.1 System Architecture</h2>
+<p>
+The application uses a classic <strong>three-tier architecture</strong> with an additional
+external AI service tier.
+</p>
+
+<figure>
+<div class="arch">
+  <div class="layer"><b>Presentation Tier — Next.js 16 / React 19 (browser)</b><br>
+    Dashboard, Builder, Preview, ATS Analyzer, JD Matcher, Cover Letter, Interview Prep,
+    Recruiter Audit, Outreach, Import, Tracker. Typed API client in <code>src/lib/api.ts</code>.</div>
+  <div class="arrow">▼ HTTPS / JSON ▲</div>
+  <div class="layer"><b>Application Tier — FastAPI (Python, async)</b><br>
+    Routers: <code>resume</code>, <code>resumes</code>, <code>applications</code>,
+    <code>ats</code>, <code>ai</code>, <code>export</code>. Services: AI, ATS scorer,
+    parser, export, skill synonyms. Pydantic request/response schemas.</div>
+  <div class="arrow">▼ SQLAlchemy async (asyncpg / aiosqlite) ▲</div>
+  <div class="layer"><b>Data Tier — PostgreSQL (Supabase) or SQLite fallback</b><br>
+    Tables: <code>resumes</code>, <code>resume_data</code>, <code>ats_scans</code>,
+    <code>job_descriptions</code>, <code>job_applications</code>.</div>
+  <div class="arrow">▲ HTTPS (only from backend)</div>
+  <div class="layer"><b>External AI Tier — OpenRouter API</b><br>
+    Free LLMs (primary + fallback chain) accessed through the OpenAI-compatible SDK.
+    Responses validated against Pydantic schemas.</div>
+</div>
+<figcaption>Figure 4.1 — System architecture of the AI Resume Builder</figcaption>
+</figure>
+
+<h2>4.2 Module Design</h2>
+<table>
+  <tr><th>Module</th><th>Location</th><th>Responsibility</th></tr>
+  <tr><td>Resume Parser</td><td><code>backend/app/services/resume_parser.py</code></td><td>Extract text/sections from PDF/DOCX; detect tables and columns.</td></tr>
+  <tr><td>ATS Scorer</td><td><code>backend/app/services/ats_scorer.py</code></td><td>Rule-based scoring on structured data and on parsed text; date/header standardization.</td></tr>
+  <tr><td>AI Service</td><td><code>backend/app/services/ai_service.py</code></td><td>All LLM prompts, structured outputs, fallback models, guardrails, local degradation.</td></tr>
+  <tr><td>Skill Synonyms</td><td><code>backend/app/services/skill_synonyms.py</code></td><td>Canonical skill aliases, hard/soft categorization, word-boundary matching.</td></tr>
+  <tr><td>Export Service</td><td><code>backend/app/services/export_service.py</code></td><td>ATS-clean HTML template, PDF via WeasyPrint/Playwright, DOCX via python-docx, plain text.</td></tr>
+  <tr><td>Database Layer</td><td><code>backend/app/database.py</code>, <code>models/resume.py</code></td><td>Async engine, session factory, table creation, repository helpers.</td></tr>
+  <tr><td>Schemas</td><td><code>backend/app/schemas/resume.py</code></td><td>Pydantic models for resume data, requests, AI structured outputs.</td></tr>
+  <tr><td>API Routers</td><td><code>backend/app/api/*.py</code></td><td>HTTP endpoints, validation, error mapping, persistence orchestration.</td></tr>
+  <tr><td>API Client</td><td><code>frontend/src/lib/api.ts</code></td><td>Typed fetch wrappers for resumes, AI, ATS, export and applications.</td></tr>
+  <tr><td>Builder</td><td><code>frontend/src/app/builder/page.tsx</code></td><td>Tabbed editor, local draft autosave, AI diff modal, save/update.</td></tr>
+  <tr><td>Preview/Export</td><td><code>frontend/src/app/preview/page.tsx</code></td><td>Final rendering, ATS diagnostic, PDF/DOCX download.</td></tr>
+</table>
+
+<h2>4.3 Data Flow</h2>
+<h3>Flow 1 — Build and save a resume</h3>
+<ol>
+  <li>User fills the builder tabs; state is kept in React and mirrored to <code>localStorage</code> as a draft (400 ms debounce).</li>
+  <li>On save, the frontend sends <code>POST /api/resumes</code> or <code>PUT /api/resumes/{id}</code> with the <code>userId</code>, title, template and structured data.</li>
+  <li>FastAPI validates the payload with Pydantic, then the repository writes the <code>resumes</code> row and the <code>resume_data</code> JSONB row.</li>
+  <li>The API returns the serialized resume; the frontend redirects to <code>/builder?id=...</code>.</li>
+</ol>
+<h3>Flow 2 — ATS scan of an uploaded file</h3>
+<ol>
+  <li>User uploads a PDF/DOCX on the Analyzer page.</li>
+  <li>Frontend calls <code>POST /api/resume/parse</code> as <code>multipart/form-data</code>.</li>
+  <li>Backend extracts text (pdfplumber/python-docx), detects sections, tables and column layout.</li>
+  <li>The text-based ATS scorer returns a score, issues and passed checks.</li>
+  <li>The UI displays the score card and can hand the extracted text to the JD Matcher.</li>
+</ol>
+<h3>Flow 3 — JD matching and tailoring</h3>
+<ol>
+  <li>User pastes a job description; the frontend calls <code>POST /api/ai/analyze-jd</code>.</li>
+  <li>The AI extracts required/preferred skills and keywords; the synonym engine matches them against the resume text.</li>
+  <li>The API returns matched/missing skills and a match percentage; the user may insert missing keywords.</li>
+  <li>Optionally, <code>POST /api/ai/tailor-resume</code> rewrites wording, and guardrails restore any fabricated entities.</li>
+</ol>
+
+<h2>4.4 Database Design</h2>
+<p>
+The authoritative schema is defined as SQLAlchemy models in
+<code>backend/app/models/resume.py</code> and is created automatically on startup. On
+PostgreSQL the JSON columns become <code>JSONB</code>; on SQLite they remain JSON text.
+</p>
+
+<figure>
+<table>
+  <tr><th>Table</th><th>Key Columns</th><th>Purpose</th></tr>
+  <tr>
+    <td><code>resumes</code></td>
+    <td>id (PK), user_id (index), title, target_role, template, parent_id (index), score, created_at, updated_at</td>
+    <td>Resume metadata. <code>parent_id</code> links a tailored clone to its source variant.</td>
+  </tr>
+  <tr>
+    <td><code>resume_data</code></td>
+    <td>id (PK), resume_id (FK → resumes.id, unique, ON DELETE CASCADE), data (JSONB), timestamps</td>
+    <td>Structured resume body: contact, summary, experience, education, skills, projects, certifications.</td>
+  </tr>
+  <tr>
+    <td><code>ats_scans</code></td>
+    <td>id (PK), resume_id (FK, index), score, matched_keywords, missing_keywords, suggestions, created_at</td>
+    <td>History of ATS scoring results for a resume.</td>
+  </tr>
+  <tr>
+    <td><code>job_descriptions</code></td>
+    <td>id (PK), user_id (index), target_role, raw_text, parsed_skills (JSONB), created_at</td>
+    <td>Saved job descriptions and their extracted skills.</td>
+  </tr>
+  <tr>
+    <td><code>job_applications</code></td>
+    <td>id (PK), user_id (index), company_name, role_title, location, salary, status (index), date_applied, resume_id (FK, SET NULL), notes, timestamps</td>
+    <td>Kanban application pipeline; optionally linked to a resume variant.</td>
+  </tr>
+</table>
+<figcaption>Figure 4.2 — Database tables and relationships</figcaption>
+</figure>
+
+<p><strong>Relationships:</strong> one <code>Resume</code> has exactly one <code>ResumeData</code>
+(1:1) and many <code>AtsScan</code> records (1:N). A <code>JobApplication</code> may reference one
+<code>Resume</code> (N:1). <code>Resumes</code> also self-reference through <code>parent_id</code>
+for variants.</p>
+
+<h2>4.5 API Design</h2>
+<p>
+The backend exposes a JSON REST API under <code>/api</code>. It is documented automatically by
+FastAPI at <code>/docs</code> (Swagger UI) and <code>/redoc</code>. The complete endpoint list is
+given in Appendix A.
+</p>
+<table>
+  <tr><th>Group</th><th>Base Path</th><th>Operations</th></tr>
+  <tr><td>Health</td><td><code>/api/health</code></td><td>Database connectivity and provider check</td></tr>
+  <tr><td>Parsing</td><td><code>/api/resume</code></td><td>Upload PDF/DOCX → text, sections, layout, ATS analysis</td></tr>
+  <tr><td>Resume CRUD</td><td><code>/api/resumes</code></td><td>Create, list, get, update, delete, clone, insert keywords</td></tr>
+  <tr><td>ATS</td><td><code>/api/ats</code></td><td>Score structured resume data</td></tr>
+  <tr><td>AI</td><td><code>/api/ai</code></td><td>Bullets, summary, skills, JD, tailor, cover letter, interview, raw parse, audit, outreach</td></tr>
+  <tr><td>Export</td><td><code>/api/export</code></td><td>PDF, DOCX, text, HTML</td></tr>
+  <tr><td>Applications</td><td><code>/api/applications</code></td><td>List, create, update, delete tracked jobs</td></tr>
+</table>
+
+<h2>4.6 Frontend Page Map</h2>
+<table>
+  <tr><th>Route</th><th>Page</th><th>Function</th></tr>
+  <tr><td><code>/</code></td><td>Dashboard</td><td>Stats, resume list, search, duplicate/delete, toolkit shortcuts</td></tr>
+  <tr><td><code>/builder</code></td><td>Builder</td><td>Tabbed editor, live draft autosave, AI actions with diff modal</td></tr>
+  <tr><td><code>/preview</code></td><td>Preview</td><td>Rendered resume, ATS diagnostics, template switch, PDF/DOCX export</td></tr>
+  <tr><td><code>/analyzer</code></td><td>ATS Scan</td><td>Upload PDF/DOCX, view score card and extracted text</td></tr>
+  <tr><td><code>/matcher</code></td><td>JD Matcher</td><td>Paste JD, view matched/missing skills, insert keywords</td></tr>
+  <tr><td><code>/import</code></td><td>Import</td><td>Paste raw resume/LinkedIn text → AI auto-fills structured fields</td></tr>
+  <tr><td><code>/cover-letter</code></td><td>Cover Letter</td><td>Generate and copy a tailored cover letter</td></tr>
+  <tr><td><code>/interview-prep</code></td><td>Interview Prep</td><td>Generate behavioral/technical questions with STAR answers</td></tr>
+  <tr><td><code>/recruiter-audit</code></td><td>Recruiter Scan</td><td>6-second cold-read audit with red flags and top fixes</td></tr>
+  <tr><td><code>/outreach</code></td><td>Outreach</td><td>Connection note, cold email, referral and follow-up messages</td></tr>
+  <tr><td><code>/tracker</code></td><td>Job Pipeline</td><td>Kanban board across five application stages</td></tr>
+</table>
+
+<h2>4.7 AI Pipeline Design</h2>
+<p>
+All AI features share a single resilient pipeline in <code>ai_service.py</code>:
+</p>
+<ol>
+  <li><strong>Prompt construction:</strong> a role-specific system prompt plus a user prompt containing only the user's own data.</li>
+  <li><strong>Structured output:</strong> the model is asked to return JSON; the response is parsed (code-fence stripping and regex extraction) and validated with a Pydantic model.</li>
+  <li><strong>Model fallback chain:</strong> primary model first (default <code>deepseek/deepseek-chat-v3-0324:free</code>), then configured fallbacks (Llama 3.3 70B free, Gemini 2.0 Flash Lite free). On 429/timeout/5xx/empty response, the next model is tried with a short backoff.</li>
+  <li><strong>Graceful degradation:</strong> if all models fail for bullet improvement, a local rule-based rewrite strips passive phrases and inserts a strong verb, so the UI still works offline.</li>
+  <li><strong>Guardrails:</strong> see section 4.9.</li>
+</ol>
+
+<h2>4.8 ATS Scoring Algorithm</h2>
+<h3>Structured scoring (builder data)</h3>
+<p>
+The resume starts at 100 points and deductions are applied for each missing or weak element.
+The same deductions are reported as issues with a severity (<code>error</code>/<code>warning</code>),
+a category and a concrete fix.
+</p>
+<table>
+  <tr><th>Check</th><th>Deduction</th><th>Severity</th></tr>
+  <tr><td>Full name missing</td><td>−10</td><td>error</td></tr>
+  <tr><td>Email missing</td><td>−10</td><td>error</td></tr>
+  <tr><td>Phone missing</td><td>−5</td><td>error</td></tr>
+  <tr><td>Professional summary missing</td><td>−10</td><td>warning</td></tr>
+  <tr><td>Experience section missing/empty</td><td>−15</td><td>error</td></tr>
+  <tr><td>Experience entries without bullets</td><td>−5</td><td>warning</td></tr>
+  <tr><td>Experience entries missing dates</td><td>−5</td><td>error</td></tr>
+  <tr><td>Irregular date format</td><td>−5 (per category)</td><td>warning</td></tr>
+  <tr><td>Education missing</td><td>−10</td><td>warning</td></tr>
+  <tr><td>Skills missing</td><td>−10</td><td>warning</td></tr>
+  <tr><td>No quantified achievement in bullets</td><td>−5</td><td>warning</td></tr>
+  <tr><td>Passive phrasing in bullets</td><td>−5</td><td>warning</td></tr>
+</table>
+<p>
+Passed checks (e.g. "Contact information present", "Quantified achievements present") are also
+returned so the user sees both strengths and weaknesses. The final score is clamped to 0–100
+and summarized as "well-structured" (≥80), "some issues" (60–79) or "needs significant
+improvements" (&lt;60).
+</p>
+<h3>Text scoring (uploaded file)</h3>
+<p>
+For an uploaded file the engine checks the presence of the six standard sections (Summary,
+Experience, Education, Skills, Projects, Certifications), total content length, non-standard
+heading-like lines, table detection and multi-column detection. Each failure deducts points
+and produces a fix. The PDF parser identifies tables with <code>pdfplumber.find_tables()</code>
+and estimates columns by analysing the distribution of word x-coordinates.
+</p>
+
+<h2>4.9 Security and AI Guardrails</h2>
+<ul>
+  <li><strong>Ownership scoping:</strong> every resume/application query filters by <code>user_id</code>, preventing one browser identity from reading another's data.</li>
+  <li><strong>Secrets in environment:</strong> API keys and database URLs are read from <code>.env</code> and never shipped to the browser (only <code>NEXT_PUBLIC_API_URL</code> is public).</li>
+  <li><strong>Anti-hallucination (tailor):</strong> the original resume JSON is the source of truth. After the AI responds, the backend restores contact, education, projects and certifications unchanged; rejects fabricated companies; drops skills that were not in the original resume (or an exact synonym); and records <code>guardrailWarnings</code>.</li>
+  <li><strong>Fact preservation (bullets/summary):</strong> prompts explicitly forbid inventing metrics, tools, titles or credentials; metrics are omitted rather than fabricated.</li>
+  <li><strong>Validation:</strong> every AI response must pass Pydantic validation or the model is retried/failed safely.</li>
+  <li><strong>Error mapping:</strong> authentication, rate-limit, quota and upstream errors are mapped to meaningful HTTP status codes and user-friendly messages.</li>
+</ul>
+
+<!-- ================= CHAPTER 5 ================= -->
+<h1>5. Implementation</h1>
+
+<h2>5.1 Project Structure</h2>
+<pre>AI RESUME BUILDER WITH ATS/
+├── frontend/                      # Next.js web app
+│   ├── src/app/                   # Pages (dashboard, builder, analyzer, ...)
+│   ├── src/components/            # UI components + ResumeDocument
+│   ├── src/hooks/useResumes.ts    # Resume loading hooks
+│   ├── src/lib/api.ts             # Typed API client
+│   ├── src/lib/resume-text.ts     # Plain-text rendering + page estimate
+│   ├── src/lib/user-id.ts         # Anonymous browser identity
+│   └── src/types/resume.ts        # Shared TypeScript types
+├── backend/                       # Python FastAPI server
+│   ├── main.py                    # App factory, CORS, routers, health
+│   ├── app/database.py            # Async engine + session + init_db
+│   ├── app/models/resume.py       # SQLAlchemy models + repositories
+│   ├── app/schemas/resume.py      # Pydantic request/response schemas
+│   ├── app/api/                   # Routers (resume, resumes, ats, ai, export, applications)
+│   ├── app/services/              # AI, ATS scorer, parser, export, skill synonyms
+│   ├── tests/                     # pytest test-suite
+│   ├── Dockerfile                 # Production image (WeasyPrint libs included)
+│   └── requirements.txt           # Python dependencies
+├── database/                      # Local Postgres compose + seed + docs
+├── README.md
+└── AGENTS.md</pre>
+
+<h2>5.2 Backend Implementation</h2>
+<p>
+<strong>Application entry point (<code>main.py</code>):</strong> creates the FastAPI app, adds
+CORS for localhost and configured origins, registers six routers, and defines
+<code>/api/health</code>. A lifespan handler calls <code>init_db()</code> on startup and
+<code>close_db()</code> on shutdown. The health endpoint probes the database with
+<code>SELECT 1</code> and reports the provider (<code>sqlite</code> or <code>postgres</code>).
+</p>
+<p>
+<strong>Database layer (<code>app/database.py</code>):</strong> reads <code>DATABASE_URL</code>,
+defaults to <code>sqlite+aiosqlite:///./resume_builder.db</code>, and creates an async engine.
+SQLite gets <code>check_same_thread=False</code>; PostgreSQL gets a pool of 5 with 10 overflow.
+Sessions are provided to routes through a FastAPI dependency.
+</p>
+<p>
+<strong>Repository layer (<code>app/models/resume.py</code>):</strong> contains all CRUD
+operations as async functions: <code>create_resume</code>, <code>get_resume_for_user</code>,
+<code>list_resumes</code>, <code>update_resume</code>, <code>delete_resume</code>,
+<code>create_ats_scan</code>, <code>save_job_description</code> and the job-application
+helpers. Every function that accesses user data receives <code>user_id</code> for ownership
+enforcement.
+</p>
+<p>
+<strong>Validation (<code>app/schemas/resume.py</code>):</strong> defines the resume object
+graph (<code>ContactInfo</code>, <code>WorkExperience</code>, <code>Education</code>,
+<code>Skill</code>, <code>Project</code>, <code>Certification</code>, <code>ResumeData</code>),
+all request models, and structured AI output models.
+</p>
+
+<h2>5.3 Frontend Implementation</h2>
+<p>
+The frontend uses the Next.js App Router with client components for interactive pages. Each
+page is a self-contained module under <code>src/app</code>. Shared UI primitives (Button, Card,
+Field, Modal, Chip, Loading, ErrorBanner, AtsGauge) live in <code>src/components/ui</code>, so
+styling and behaviour stay consistent.
+</p>
+<ul>
+  <li><strong>State:</strong> React <code>useState</code>/<code>useMemo</code>/<code>useCallback</code>; no external state library is needed.</li>
+  <li><strong>Identity:</strong> <code>getUserId()</code> creates a UUID in <code>localStorage</code> once and reuses it, so saves survive reloads without login.</li>
+  <li><strong>Draft autosave:</strong> the builder mirrors unsaved edits to <code>localStorage</code> with a 400 ms debounce; the preview can render a draft before it is saved.</li>
+  <li><strong>AI diff modal:</strong> AI changes are never applied blindly. The original and proposed text are shown side by side with Accept/Regenerate actions.</li>
+  <li><strong>Types:</strong> every API response has a matching TypeScript interface in <code>src/types/resume.ts</code>.</li>
+</ul>
+
+<h2>5.4 Database Implementation</h2>
+<p>
+Tables are created automatically by <code>Base.metadata.create_all</code> inside
+<code>init_db()</code>, so no migration tool is required for the MVP. A local PostgreSQL can be
+started with Docker Compose (<code>database/docker-compose.yml</code>), which also launches
+pgAdmin. <code>database/seed.py</code> is idempotent: it creates the schema and inserts a demo
+resume and job description for the <code>demo-user</code> account only if that user has no
+resumes.
+</p>
+<div class="note">
+  <strong>Production database:</strong> set
+  <code>DATABASE_URL=postgresql+asyncpg://postgres:&lt;password&gt;@&lt;host&gt;:6543/postgres?sslmode=require</code>
+  in <code>backend/.env</code>. On first boot the five tables are created automatically.
+</div>
+
+<h2>5.5 AI Service Implementation</h2>
+<p>
+The AI service exposes asynchronous functions used by the AI router:
+</p>
+<table>
+  <tr><th>Function</th><th>Endpoint</th><th>Output</th></tr>
+  <tr><td><code>improve_bullet_point</code></td><td>/api/ai/improve-bullet</td><td>Rewritten bullet, passive-phrase flags, model used</td></tr>
+  <tr><td><code>generate_summary</code></td><td>/api/ai/generate-summary</td><td>3–4 sentence professional summary</td></tr>
+  <tr><td><code>suggest_skills</code></td><td>/api/ai/suggest-skills</td><td>10–15 canonical skills for a role</td></tr>
+  <tr><td><code>extract_jd_keywords</code></td><td>/api/ai/analyze-jd</td><td>Required/preferred skills, keywords, hard/soft split</td></tr>
+  <tr><td><code>tailor_full_resume</code></td><td>/api/ai/tailor-resume</td><td>Rewritten summary/bullets/skills + guardrail warnings</td></tr>
+  <tr><td><code>generate_cover_letter</code></td><td>/api/ai/generate-cover-letter</td><td>Structured letter sections + full text</td></tr>
+  <tr><td><code>generate_interview_prep</code></td><td>/api/ai/interview-prep</td><td>Behavioral/technical questions with STAR answers</td></tr>
+  <tr><td><code>parse_raw_resume_text</code></td><td>/api/ai/parse-raw-resume</td><td>Fully structured <code>ResumeData</code></td></tr>
+  <tr><td><code>generate_recruiter_audit</code></td><td>/api/ai/recruiter-audit</td><td>First impression, callback probability, red flags, top fixes</td></tr>
+  <tr><td><code>generate_outreach_messages</code></td><td>/api/ai/generate-outreach</td><td>Connection note, cold email, referral, follow-up</td></tr>
+</table>
+<p>
+The <strong>Google XYZ formula</strong> ("Accomplished [X] as measured by [Y], by doing [Z]") is
+used for bullet rewriting, and a list of passive phrases ("responsible for", "worked on",
+"helped with", etc.) is detected locally and merged with the model's own flags.
+</p>
+
+<h2>5.6 Resume Parsing Implementation</h2>
+<p>
+PDF text and tables are extracted with <code>pdfplumber</code>; DOCX text is extracted with
+<code>python-docx</code>. The parser splits the text into sections by matching standard headings
+at the start of a line, and detects non-standard headings by checking heading-like lines
+(all-caps or title-case, short, no terminating punctuation) against the canonical set.
+Column detection compares each word's x-coordinate to the median; if more than 5% of words are
+far from the median, the layout is considered multi-column.
+</p>
+
+<h2>5.7 Export Implementation</h2>
+<p>
+<strong>PDF:</strong> the resume is rendered into a single-column HTML template (Arial/Helvetica,
+10 pt, Letter page, 0.55–0.6 in margins, standard headings, selectable text). WeasyPrint is tried
+first; if its native GTK libraries are unavailable (common on Windows/macOS), Playwright with
+headless Chromium is used as a fallback. Both produce a real text layer that ATS parsers can read.
+</p>
+<p>
+<strong>DOCX:</strong> generated with <code>python-docx</code> using headings, bold company names,
+italic roles and the <code>List Bullet</code> style, keeping the document simple and parseable.
+</p>
+<p>
+<strong>Plain text / HTML:</strong> a copy-pasteable text version for legacy ATS text boxes and
+an HTML version for web preview.
+</p>
+
+<!-- ================= CHAPTER 6 ================= -->
+<h1>6. Testing</h1>
+
+<h2>6.1 Testing Strategy</h2>
+<p>
+The backend is tested with <strong>pytest</strong> using an in-memory SQLite database configured
+through <code>configure_database()</code>, so tests never touch real data. AI calls are
+monkeypatched, which makes the test-suite deterministic and offline. Frontend correctness is
+checked with the Next.js/TypeScript build and ESLint.
+</p>
+
+<h2>6.2 Test Cases</h2>
+<table>
+  <tr><th>ID</th><th>Module</th><th>Test Case</th><th>Expected Result</th></tr>
+  <tr><td>TC-01</td><td>Resume Parser</td><td>Upload a valid PDF/DOCX</td><td>Text, sections and layout are returned</td></tr>
+  <tr><td>TC-02</td><td>Resume Parser</td><td>Upload an unsupported file</td><td>HTTP 400 with a clear message</td></tr>
+  <tr><td>TC-03</td><td>ATS Scorer</td><td>Score a complete resume</td><td>Score 100 with passed checks</td></tr>
+  <tr><td>TC-04</td><td>ATS Scorer</td><td>Remove contact/summary/skills</td><td>Score drops with matching issues and fixes</td></tr>
+  <tr><td>TC-05</td><td>ATS Scorer</td><td>Use an irregular date</td><td>Warning issued, deduction applied</td></tr>
+  <tr><td>TC-06</td><td>Resume CRUD</td><td>Create then list a resume</td><td>Resume appears for the same userId only</td></tr>
+  <tr><td>TC-07</td><td>Resume CRUD</td><td>Update and delete a resume</td><td>Changes persist; delete returns the id</td></tr>
+  <tr><td>TC-08</td><td>Resume CRUD</td><td>Access another user's resume</td><td>HTTP 404 (not leaked)</td></tr>
+  <tr><td>TC-09</td><td>Variants</td><td>Clone a resume</td><td>New resume with <code>parent_id</code> set</td></tr>
+  <tr><td>TC-10</td><td>AI Service</td><td>Improve a passive bullet</td><td>Strong-verb rewrite + flags</td></tr>
+  <tr><td>TC-11</td><td>AI Service</td><td>AI returns invalid JSON</td><td>Fallback/retry then graceful error</td></tr>
+  <tr><td>TC-12</td><td>AI Service</td><td>Tailor with a fabricated company</td><td>Fabrication removed + warning recorded</td></tr>
+  <tr><td>TC-13</td><td>JD Matcher</td><td>Analyze a JD against a resume</td><td>Matched/missing skills + match %</td></tr>
+  <tr><td>TC-14</td><td>Export</td><td>Export PDF and DOCX</td><td>Valid files with correct MIME type</td></tr>
+  <tr><td>TC-15</td><td>Tracker</td><td>Create/update/delete an application</td><td>Pipeline reflects the change</td></tr>
+  <tr><td>TC-16</td><td>Health</td><td>Call <code>/api/health</code></td><td>Status ok/degraded + provider</td></tr>
+</table>
+
+<h2>6.3 Automated Tests</h2>
+<p>
+The <code>backend/tests</code> folder contains dedicated test modules:
+</p>
+<ul>
+  <li><code>test_resume_parser.py</code> — file parsing and section extraction</li>
+  <li><code>test_ats_scorer.py</code> — scoring rules, dates, sections</li>
+  <li><code>test_api_resumes.py</code> — CRUD, ownership, variants</li>
+  <li><code>test_ai_service.py</code> — structured outputs, fallbacks, guardrails</li>
+  <li><code>test_export.py</code> — PDF/DOCX/text export</li>
+  <li><code>test_tracking.py</code> — job-application pipeline</li>
+</ul>
+<p>Run them with:</p>
+<pre>cd backend
+python -m pytest tests -q</pre>
+
+<!-- ================= CHAPTER 7 ================= -->
+<h1>7. Results and Discussion</h1>
+
+<h2>7.1 Features Achieved</h2>
+<div class="kpi-row">
+  <div class="kpi"><div class="num">11</div><div class="lbl">Frontend Pages</div></div>
+  <div class="kpi"><div class="num">25+</div><div class="lbl">REST Endpoints</div></div>
+  <div class="kpi"><div class="num">10</div><div class="lbl">AI Features</div></div>
+  <div class="kpi"><div class="num">5</div><div class="lbl">Database Tables</div></div>
+</div>
+<ul>
+  <li>Guided resume builder with live preview and three ATS-safe templates.</li>
+  <li>Deterministic ATS scoring (0–100) with itemized issues and fixes, for both structured data and uploaded files.</li>
+  <li>PDF/DOCX parsing with table and multi-column detection.</li>
+  <li>AI summary generation, bullet improvement, skill suggestions, JD analysis and full-resume tailoring.</li>
+  <li>Semantic skill matching using a large canonical synonym map (React ↔ React.js, K8s ↔ Kubernetes, etc.).</li>
+  <li>Cover letter generation, interview prep with STAR answers, recruiter audit and outreach messages.</li>
+  <li>Resume variants (clone with <code>parent_id</code>) and one-click missing-keyword insertion.</li>
+  <li>Job-application Kanban tracker across five stages.</li>
+  <li>ATS-clean PDF (WeasyPrint/Playwright), DOCX (python-docx), plain text and HTML export.</li>
+  <li>Persistence on Supabase PostgreSQL or local SQLite with automatic schema creation.</li>
+</ul>
+
+<h2>7.2 Advantages</h2>
+<ul>
+  <li><strong>Explainable scoring:</strong> every deduction is tied to a specific check and a fix, unlike black-box checkers.</li>
+  <li><strong>Ethical AI:</strong> guardrails prevent fabricated experience and metrics.</li>
+  <li><strong>Resilient AI:</strong> model fallback plus a local degradation path.</li>
+  <li><strong>No lock-in:</strong> open-source stack, free AI models, and a SQLite fallback that needs no server.</li>
+  <li><strong>End-to-end workflow:</strong> from resume creation to tailored application and tracking in one place.</li>
+  <li><strong>Structured-first design:</strong> consistent exports and reliable AI inputs.</li>
+</ul>
+
+<h2>7.3 Limitations</h2>
+<ul>
+  <li>No real authentication; identity is a browser-local anonymous id, so data is not portable across devices.</li>
+  <li>AI quality depends on the external provider and on free-model availability/rate limits.</li>
+  <li>The ATS score is rule-based and heuristic; it approximates real ATS behaviour but cannot guarantee a specific vendor's result.</li>
+  <li>PDF export on Windows/macOS depends on Playwright/Chromium when WeasyPrint's native libraries are missing.</li>
+  <li>Section extraction from very unusual resume layouts may be imperfect.</li>
+  <li>No server-side pagination or caching for large numbers of resumes (fine for individual use).</li>
+</ul>
+
+<!-- ================= CHAPTER 8 ================= -->
+<h1>8. Conclusion and Future Scope</h1>
+<p>
+The AI Resume Builder with ATS Optimization successfully demonstrates how a structured,
+full-stack web application can remove the guesswork from resume writing. By storing the resume
+as structured data, scoring it deterministically, enriching it with carefully guarded AI, and
+exporting a parser-friendly document, the system helps candidates pass automated screening and
+present themselves clearly to recruiters. The three-tier architecture is clean, portable and
+free to run, while the automated tests and graceful degradation make it reliable in practice.
+</p>
+<h3>Future Scope</h3>
+<ul>
+  <li><strong>Authentication:</strong> integrate Supabase Auth or OAuth so resumes sync across devices securely.</li>
+  <li><strong>Real ATS integrations:</strong> import job postings directly from job boards and auto-detect company/role.</li>
+  <li><strong>Collaboration:</strong> share a resume for mentor review with comments and version history.</li>
+  <li><strong>Analytics:</strong> dashboards for application conversion rates by resume variant and keyword coverage.</li>
+  <li><strong>Local/private models:</strong> optional Ollama/self-hosted LLM support for privacy-sensitive users.</li>
+  <li><strong>More templates:</strong> additional ATS-safe templates with accessibility options.</li>
+  <li><strong>Internationalization:</strong> multiple languages, date formats and resume conventions.</li>
+  <li><strong>Mobile app:</strong> a companion React Native application sharing the same API.</li>
+</ul>
+
+<!-- ================= REFERENCES ================= -->
+<h1>References</h1>
+<ol>
+  <li>FastAPI Documentation — https://fastapi.tiangolo.com/</li>
+  <li>Next.js Documentation — https://nextjs.org/docs</li>
+  <li>React Documentation — https://react.dev/</li>
+  <li>SQLAlchemy 2.0 Documentation — https://docs.sqlalchemy.org/</li>
+  <li>Pydantic v2 Documentation — https://docs.pydantic.dev/</li>
+  <li>Supabase Documentation — https://supabase.com/docs</li>
+  <li>OpenRouter API Documentation — https://openrouter.ai/docs</li>
+  <li>WeasyPrint Documentation — https://doc.courtbouillon.org/weasyprint/</li>
+  <li>python-docx Documentation — https://python-docx.readthedocs.io/</li>
+  <li>pdfplumber Documentation — https://github.com/jsvine/pdfplumber</li>
+  <li>Tailwind CSS Documentation — https://tailwindcss.com/docs</li>
+  <li>pytest Documentation — https://docs.pytest.org/</li>
+</ol>
+
+<!-- ================= APPENDIX A ================= -->
+<h1>Appendix A: API Endpoints</h1>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+  <tr><td>GET</td><td><code>/api/health</code></td><td>Health and database connectivity check</td></tr>
+  <tr><td>POST</td><td><code>/api/resume/parse</code></td><td>Upload PDF/DOCX → text, sections, layout, ATS analysis</td></tr>
+  <tr><td>POST</td><td><code>/api/ats/score</code></td><td>Score structured resume data</td></tr>
+  <tr><td>POST</td><td><code>/api/ai/analyze-jd</code></td><td>Extract JD keywords and match against resume text</td></tr>
+  <tr><td>POST</td><td><code>/api/ai/improve-bullet</code></td><td>Rewrite a bullet point with AI</td></tr>
+  <tr><td>POST</td><td><code>/api/ai/generate-summary</code></td><td>Generate a professional summary</td></tr>
+  <tr><td>POST</td><td><code>/api/ai/suggest-skills</code></td><td>Suggest skills for a target role</td></tr>
+  <tr><td>POST</td><td><code>/api/ai/tailor-resume</code></td><td>Rewrite the resume for a job description (guarded)</td></tr>
+  <tr><td>POST</td><td><code>/api/ai/generate-cover-letter</code></td><td>Generate a tailored cover letter</td></tr>
+  <tr><td>POST</td><td><code>/api/ai/interview-prep</code></td><td>Generate interview questions with STAR answers</td></tr>
+  <tr><td>POST</td><td><code>/api/ai/parse-raw-resume</code></td><td>Auto-fill structured fields from pasted text</td></tr>
+  <tr><td>POST</td><td><code>/api/ai/recruiter-audit</code></td><td>6-second recruiter cold-read audit</td></tr>
+  <tr><td>POST</td><td><code>/api/ai/generate-outreach</code></td><td>Generate cold-outreach messages</td></tr>
+  <tr><td>POST</td><td><code>/api/export/pdf</code></td><td>Export resume as PDF</td></tr>
+  <tr><td>POST</td><td><code>/api/export/docx</code></td><td>Export resume as DOCX</td></tr>
+  <tr><td>POST</td><td><code>/api/export/text</code></td><td>Export resume as plain text</td></tr>
+  <tr><td>POST</td><td><code>/api/export/html</code></td><td>Export resume as HTML</td></tr>
+  <tr><td>POST</td><td><code>/api/resumes</code></td><td>Save a resume</td></tr>
+  <tr><td>GET</td><td><code>/api/resumes?userId=</code></td><td>List a user's resumes</td></tr>
+  <tr><td>GET</td><td><code>/api/resumes/{id}?userId=</code></td><td>Get one saved resume</td></tr>
+  <tr><td>PUT</td><td><code>/api/resumes/{id}</code></td><td>Update a saved resume</td></tr>
+  <tr><td>DELETE</td><td><code>/api/resumes/{id}?userId=</code></td><td>Delete a saved resume</td></tr>
+  <tr><td>POST</td><td><code>/api/resumes/{id}/clone</code></td><td>Clone a resume as a variant</td></tr>
+  <tr><td>POST</td><td><code>/api/resumes/{id}/insert-keywords</code></td><td>Insert JD keywords into skills/summary</td></tr>
+  <tr><td>GET</td><td><code>/api/applications?userId=</code></td><td>List job applications</td></tr>
+  <tr><td>POST</td><td><code>/api/applications</code></td><td>Create a job application</td></tr>
+  <tr><td>PUT</td><td><code>/api/applications/{id}</code></td><td>Update a job application</td></tr>
+  <tr><td>DELETE</td><td><code>/api/applications/{id}?userId=</code></td><td>Delete a job application</td></tr>
+</table>
+
+<!-- ================= APPENDIX B ================= -->
+<h1>Appendix B: Environment Variables</h1>
+<p>Backend — <code>backend/.env</code>:</p>
+<table>
+  <tr><th>Variable</th><th>Purpose</th></tr>
+  <tr><td><code>DATABASE_URL</code></td><td>Database connection. Defaults to SQLite; use the Supabase Postgres URL in production.</td></tr>
+  <tr><td><code>OPENROUTER_API_KEY</code></td><td>API key for OpenRouter (free models work with $0 balance).</td></tr>
+  <tr><td><code>OPENROUTER_MODEL</code></td><td>Primary model, e.g. <code>deepseek/deepseek-chat-v3-0324:free</code>.</td></tr>
+  <tr><td><code>OPENROUTER_MODEL_FALLBACKS</code></td><td>Comma-separated fallback models.</td></tr>
+  <tr><td><code>CORS_ALLOWED_ORIGINS</code></td><td>Extra allowed origins beyond localhost.</td></tr>
+  <tr><td><code>PORT</code></td><td>Server port (default 8000).</td></tr>
+  <tr><td><code>APP_URL</code></td><td>Public app URL used in AI provider headers.</td></tr>
+  <tr><td><code>SUPABASE_URL</code>, <code>SUPABASE_KEY</code>, <code>SUPABASE_SECRET_KEY</code></td><td>Optional Supabase credentials for future Auth integration.</td></tr>
+</table>
+<p>Frontend — <code>frontend/.env</code>:</p>
+<table>
+  <tr><th>Variable</th><th>Purpose</th></tr>
+  <tr><td><code>NEXT_PUBLIC_API_URL</code></td><td>Backend base URL, e.g. <code>http://localhost:8000</code>.</td></tr>
+</table>
+<div class="warn">
+  <strong>Security note:</strong> never commit real keys to version control. Keep only
+  placeholder values in <code>.env.example</code> and add <code>.env</code> to
+  <code>.gitignore</code>.
+</div>
+
+<!-- ================= APPENDIX C ================= -->
+<h1>Appendix C: How to Run the Project</h1>
+
+<h3>1. Backend (FastAPI)</h3>
+<pre>cd backend
+pip install -r requirements.txt
+# create backend/.env and set OPENROUTER_API_KEY and (optionally) DATABASE_URL
+python -m uvicorn main:app --reload --port 8000</pre>
+<p>API docs: <code>http://localhost:8000/docs</code> &nbsp;|&nbsp; Health: <code>http://localhost:8000/api/health</code></p>
+
+<h3>2. Frontend (Next.js)</h3>
+<pre>cd frontend
+npm install
+# create frontend/.env with NEXT_PUBLIC_API_URL=http://localhost:8000
+npm run dev</pre>
+<p>Website: <code>http://localhost:3000</code></p>
+
+<h3>3. Database (optional)</h3>
+<pre># Local PostgreSQL + pgAdmin
+cd database
+docker compose up -d
+
+# Then set in backend/.env:
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/resume_builder
+
+# Seed demo data (idempotent)
+python database/seed.py</pre>
+<p>
+If Docker is not available, leave <code>DATABASE_URL</code> unset. The backend automatically
+creates and uses <code>backend/resume_builder.db</code> (SQLite).
+</p>
+
+<h3>4. Tests</h3>
+<pre>cd backend
+python -m pytest tests -q</pre>
+
+<h3>5. Production build (frontend)</h3>
+<pre>cd frontend
+npm run build
+npm run start</pre>
+
+<p class="small center" style="margin-top:40px;">
+— End of Report —
+</p>
+
+</body>
+</html>

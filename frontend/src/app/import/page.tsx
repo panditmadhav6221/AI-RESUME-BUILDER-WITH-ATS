@@ -9,7 +9,7 @@ import ErrorBanner from '@/components/ui/ErrorBanner'
 import SectionHeading from '@/components/ui/SectionHeading'
 import { TextArea } from '@/components/ui/Field'
 import { Loading } from '@/components/ui/Loading'
-import { aiApi } from '@/lib/api'
+import { aiApi, parseResumeFile } from '@/lib/api'
 import type { ResumeData } from '@/types'
 
 import { BUILDER_DRAFT_KEY } from '@/lib/storage-keys'
@@ -61,13 +61,31 @@ export default function ImportPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [fileName, setFileName] = useState('')
+  const [readingFile, setReadingFile] = useState(false)
 
-  const readFile = (file: File) => {
+  const readFile = async (file: File) => {
     setFileName(file.name)
-    const reader = new FileReader()
-    reader.onload = () => setRawText(String(reader.result ?? ''))
-    reader.onerror = () => setError('Could not read that file')
-    reader.readAsText(file)
+    setError('')
+    const ext = file.name.toLowerCase().split('.').pop() ?? ''
+    try {
+      if (ext === 'pdf' || ext === 'docx') {
+        setReadingFile(true)
+        const result = await parseResumeFile(file)
+        setRawText(result.text)
+        if (!result.text.trim()) {
+          setError('No text could be extracted from that file. It may be scanned or image-based.')
+        }
+      } else if (ext === 'txt' || ext === 'md') {
+        setRawText(await file.text())
+      } else {
+        setFileName('')
+        setError('Unsupported file type. Please upload a PDF, DOCX, TXT, or MD file.')
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not read that file')
+    } finally {
+      setReadingFile(false)
+    }
   }
 
   const handleParse = async () => {
@@ -142,14 +160,16 @@ export default function ImportPage() {
           <label className="mb-4 flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border py-6 cursor-pointer hover:border-primary/50 transition-colors">
             <FileUp className="w-5 h-5 text-zinc-400" />
             <span className="text-[13px] font-medium text-zinc-600">
-              {fileName || 'Or upload a .txt / .md file'}
+              {readingFile ? 'Extracting text…' : fileName || 'Or upload a PDF, DOCX, .txt / .md file'}
             </span>
             <input
               type="file"
-              accept=".txt,.md,text/plain,text/markdown"
+              accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+              disabled={readingFile}
               onChange={(e) => {
                 const file = e.target.files?.[0]
-                if (file) readFile(file)
+                if (file) void readFile(file)
+                e.target.value = ''
               }}
               className="hidden"
             />
